@@ -1,0 +1,52 @@
+{
+  "name": "示例网络",
+  "nodes": [
+    {
+      "id": 0,
+      "label": "节点A"
+    },
+    {
+      "id": 1,
+      "label": "节点B"
+    },
+    {
+      "id": 2,
+      "label": "节点C"
+    },
+    {
+      "id": 3,
+      "label": "节点D"
+    },
+    {
+      "id": 4,
+      "label": "节点E"
+    }
+  ],
+  "edges": [
+    {
+      "source": 0,
+      "target": 1
+    },
+    {
+      "source": 0,
+      "target": 2
+    },
+    {
+      "source": 1,
+      "target": 2
+    },
+    {
+      "source": 2,
+      "target": 3
+    },
+    {
+      "source": 3,
+      "target": 4
+    }
+  ],
+  "properties": {
+    "num_nodes": 5,
+    "num_edges": 5,
+    "directed": false
+  }
+}
