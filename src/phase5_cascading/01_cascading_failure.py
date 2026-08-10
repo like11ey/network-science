@@ -8,10 +8,15 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
 
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'DejaVu Sans']
+# 项目根目录（自动定位）
+RESULTS_DIR = Path(__file__).resolve().parent.parent.parent / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
+
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 # ============================================================
@@ -310,7 +315,7 @@ if __name__ == "__main__":
     )
 
     plot_cascade_results(alpha_vals, cascade_r, cascade_t, hub,
-                        "E:/ai_python/results/cascading_alpha.png")
+                        str(RESULTS_DIR / "cascading_alpha.png"))
 
     # 实验2：可调参数β
     print("\n--- 实验2：可调负载分配参数β的影响 ---")
@@ -319,7 +324,7 @@ if __name__ == "__main__":
     )
 
     plot_tunable_beta(beta_vals, cascade_beta,
-                     "E:/ai_python/results/cascading_beta.png")
+                     str(RESULTS_DIR / "cascading_beta.png"))
 
     # 总结
     print("\n" + "="*60)

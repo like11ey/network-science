@@ -8,10 +8,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.gridspec as gridspec
+from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
 
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'DejaVu Sans']
+# 项目根目录（自动定位）
+RESULTS_DIR = Path(__file__).resolve().parent.parent.parent / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
+
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 # ============================================================
@@ -236,11 +241,11 @@ if __name__ == "__main__":
     er = nx.erdos_renyi_graph(500, 0.02, seed=42)
 
     # 基础可视化
-    basic_network_viz(ba, "BA无标度网络", "E:/ai_python/results/ba_network.png")
-    basic_network_viz(er, "ER随机网络", "E:/ai_python/results/er_network.png")
+    basic_network_viz(ba, "BA无标度网络", str(RESULTS_DIR / "ba_network.png"))
+    basic_network_viz(er, "ER随机网络", str(RESULTS_DIR / "er_network.png"))
 
     # 综合仪表板
-    create_analysis_dashboard(ba, "BA无标度", "E:/ai_python/results/ba_dashboard.png")
-    create_analysis_dashboard(er, "ER随机", "E:/ai_python/results/er_dashboard.png")
+    create_analysis_dashboard(ba, "BA无标度", str(RESULTS_DIR / "ba_dashboard.png"))
+    create_analysis_dashboard(er, "ER随机", str(RESULTS_DIR / "er_dashboard.png"))
 
     print("\n所有可视化图表已保存到 results/ 目录")

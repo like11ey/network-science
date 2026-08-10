@@ -18,11 +18,22 @@ elif x == 0:  # 注意是 elif，不是 else if
 else:
     print("负数")
 
-# 多条件组合 - Python可以用 and/or 直接连接（不需要 &&/||）
+# x = 42
+
+# if x > 0:
+#     print("正数")
+# elif x == 0:
+#     print("零")
+# else:
+#     print("负数")
+#  多条件组合 - Python可以用 and/or 直接连接（不需要 &&/||）
 k = 5
 if 2 <= k <= 10:  # Python支持链式比较！C/Java做不到
     print(f"k={k} 在 [2,10] 范围内")
 
+# k = 5 
+# if 2 <= k <= 10:
+#     print(f"k = {k} 在[2,10]范围内")
 # ============================================================
 # 2. for循环 - Python的for是for-each风格
 # ============================================================
@@ -34,9 +45,18 @@ for i in range(5):  # 0, 1, 2, 3, 4
     print(i, end=" ")
 print()
 
-# 带步长
+
+# print("\n--- range() 循环 ---")
+# for i in range(5):
+#     print(i, end=" ")
+# print()
+# # 带步长
 print("\n--- 带步长 ---")
 for i in range(0, 20, 3):  # 0, 3, 6, 9, 12, 15, 18
+    print(i, end=" ")
+print()
+
+for i in range(0, 20, 3):
     print(i, end=" ")
 print()
 
@@ -46,6 +66,9 @@ models = ["ER随机", "WS小世界", "BA无标度", "规则网络"]
 for model in models:
     print(f"  网络模型: {model}")
 
+models = ["ER随机","WS小世界", "BA无标度", "规则网络"]
+for model in models:
+    print(f" 网络模型: {model}")
 # 带索引遍历（用 enumerate）
 print("\n--- enumerate ---")
 for i, model in enumerate(models):
@@ -71,20 +94,31 @@ print()
 squares = [x**2 for x in range(10)]
 print(f"\n平方数: {squares}")
 
+squares = [x**2 for x in range(10)]
+print (f"\n平方数：{squares}")
+
 # 带条件的推导式
 even_squares = [x**2 for x in range(10) if x % 2 == 0]
 print(f"偶数的平方: {even_squares}")
 
+# even_squares = [x**2 for x in range(10) if x % 2 == 0]
+# print(f"偶数的平方：{even_squares}")
 # 实际应用：计算网络的度序列
 import random
 degrees = [random.randint(1, 20) for _ in range(100)]  # 模拟100个节点的度
 print(f"\n度序列前10个: {degrees[:10]}")
 
+# import random
+# degrees + [random.randint(1, 20) for _ in range(100)]
+# print(f"\n度序列前10个：{degrees[:10]}")
 # 用推导式统计度分布
 from collections import Counter
 degree_dist = Counter(degrees)
 print(f"度分布: {dict(sorted(degree_dist.items()))}")
 
+# from collections import Counter
+# degree_dist = Count(degrees)
+# print(f"度分布：{dict(sorted(degree_dist.items()))}")
 # ============================================================
 # 5. 三元表达式（条件表达式）
 # ============================================================
@@ -95,6 +129,10 @@ a, b = 10, 20
 max_val = a if a > b else b
 print(f"\n最大值: {max_val}")
 
+a, b = 10, 20
+max_val = a if a > b else b
+print(f"\n最大值：{max_val}")
+#  
 # ============================================================
 # 6. 字典映射（Python 3.9中替代match-case的方式）
 # ============================================================
@@ -109,6 +147,16 @@ network_info = {
 }
 # get的第二个参数是默认值（类似default分支）
 print(f"  {network_info.get(network_type, '未知网络类型')}")
+
+# network_type = "scale_free"
+
+# network_info = {
+#     "random"："ER随机网络 - Poisson度分布",
+#     "small_world"："WS小世界网络 - 高集聚系数",
+#     "scale_free"："BA无标度网络 - 幂律度分布",
+# }
+# print(f" {network_info.get(network_type, '未知网络类型')}")
+
 
 # ============================================================
 # 7. 异常处理的try-except（预告Phase 1.8）
@@ -125,6 +173,11 @@ except Exception as e:
 finally:
     print("finally块始终执行")
 
+numbers = [1, 2, 3]
+try:
+    value = numbers[10]
+except IndexError as e:
+    print(f"\n索引越界：{e}")
 # ============================================================
 # 练习：生成BA无标度网络的度序列（简化版）
 # ============================================================

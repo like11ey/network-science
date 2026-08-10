@@ -6,6 +6,11 @@ NetworkX是Python最强大的网络分析库
 import networkx as nx
 import numpy as np
 from collections import Counter
+from pathlib import Path
+
+# 项目数据目录
+DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+DATA_DIR.mkdir(exist_ok=True)
 
 # ============================================================
 # 1. 创建网络
@@ -189,13 +194,13 @@ print(f"  平均集聚系数: {nx.average_clustering(ba):.4f}")
 
 print(f"\n导出网络:")
 # 保存为GML格式
-nx.write_gml(ba, "E:/ai_python/data/ba_network.gml")
+nx.write_gml(ba, str(DATA_DIR / "ba_network.gml"))
 
 # 保存为边列表
-nx.write_edgelist(ba, "E:/ai_python/data/ba_edges.txt")
+nx.write_edgelist(ba, str(DATA_DIR / "ba_edges.txt"))
 
 # 保存为邻接表
-nx.write_adjlist(ba, "E:/ai_python/data/ba_adjlist.txt")
+nx.write_adjlist(ba, str(DATA_DIR / "ba_adjlist.txt"))
 
 print("  网络已保存为多种格式")
 

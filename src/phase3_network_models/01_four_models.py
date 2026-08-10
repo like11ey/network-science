@@ -7,12 +7,17 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
+from pathlib import Path
 import random
 import warnings
 warnings.filterwarnings('ignore')
 
+# 项目根目录（自动定位）
+RESULTS_DIR = Path(__file__).resolve().parent.parent.parent / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
+
 # 设置中文字体
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'DejaVu Sans']
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 # ============================================================
@@ -225,7 +230,7 @@ if __name__ == "__main__":
     models, results = compare_models(n=500, k=6, m=3, p=0.05)
 
     # 绘制度分布
-    plot_degree_distribution(models, "E:/ai_python/results/degree_distribution.png")
+    plot_degree_distribution(models, str(RESULTS_DIR / "degree_distribution.png"))
 
     # 幂律检验
     print("\n" + "="*50)
@@ -235,6 +240,6 @@ if __name__ == "__main__":
         check_power_law(G, name)
 
     # 可视化
-    visualize_networks(models, "E:/ai_python/results/network_visualization.png")
+    visualize_networks(models, str(RESULTS_DIR / "network_visualization.png"))
 
     print("\n完成！所有图表已保存到 results/ 目录")

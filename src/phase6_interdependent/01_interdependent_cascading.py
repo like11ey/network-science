@@ -8,10 +8,15 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
 
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'DejaVu Sans']
+# 项目根目录（自动定位）
+RESULTS_DIR = Path(__file__).resolve().parent.parent.parent / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
+
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 # ============================================================
@@ -327,7 +332,7 @@ if __name__ == "__main__":
     plt.title('相依网络级联失效', fontsize=14)
     plt.legend(fontsize=12)
     plt.grid(True, alpha=0.3)
-    plt.savefig("E:/ai_python/results/interdependent_percolation.png", dpi=150, bbox_inches="tight")
+    plt.savefig(str(RESULTS_DIR / "interdependent_percolation.png"), dpi=150, bbox_inches="tight")
     plt.close()
 
     # 实验2：耦合强度
@@ -340,7 +345,7 @@ if __name__ == "__main__":
     plt.ylabel('存活比例', fontsize=12)
     plt.title('耦合强度对级联失效的影响', fontsize=14)
     plt.grid(True, alpha=0.3)
-    plt.savefig("E:/ai_python/results/coupling_strength.png", dpi=150, bbox_inches="tight")
+    plt.savefig(str(RESULTS_DIR / "coupling_strength.png"), dpi=150, bbox_inches="tight")
     plt.close()
 
     print("\n" + "="*60)

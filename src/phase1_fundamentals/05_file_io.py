@@ -13,7 +13,9 @@ from pathlib import Path
 # ============================================================
 
 # 写文件（Python会自动处理编码）
-data_dir = Path("E:/ai_python/data")
+# 项目根目录（自动定位）
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+data_dir = PROJECT_ROOT / "data"
 data_dir.mkdir(exist_ok=True)
 
 # 写入文本

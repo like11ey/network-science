@@ -8,11 +8,16 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
+from pathlib import Path
 import random
 import warnings
 warnings.filterwarnings('ignore')
 
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'DejaVu Sans']
+# 项目根目录（自动定位）
+RESULTS_DIR = Path(__file__).resolve().parent.parent.parent / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
+
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 # ============================================================
@@ -190,7 +195,7 @@ def main():
     print(f"  蓄意攻击(度) f_c ≈ {fc_er_degree:.3f}")
 
     plot_robustness_curves(fractions, er_random, er_degree, er_betweenness,
-                          "ER随机", "E:/ai_python/results/er_robustness.png")
+                          "ER随机", str(RESULTS_DIR / "er_robustness.png"))
 
     # --- BA无标度网络 ---
     print("\n" + "="*50)
@@ -213,7 +218,7 @@ def main():
     print(f"  蓄意攻击(度) f_c ≈ {fc_ba_degree:.3f}")
 
     plot_robustness_curves(fractions, ba_random, ba_degree, ba_betweenness,
-                          "BA无标度", "E:/ai_python/results/ba_robustness.png")
+                          "BA无标度", str(RESULTS_DIR / "ba_robustness.png"))
 
     # --- 对比图 ---
     plt.figure(figsize=(10, 6))
@@ -228,7 +233,7 @@ def main():
     plt.grid(True, alpha=0.3)
     plt.xlim(0, 0.5)
     plt.ylim(0, 1.05)
-    plt.savefig("E:/ai_python/results/er_vs_ba_robustness.png", dpi=150, bbox_inches="tight")
+    plt.savefig(str(RESULTS_DIR / "er_vs_ba_robustness.png"), dpi=150, bbox_inches="tight")
     plt.close()
 
     # --- 总结 ---

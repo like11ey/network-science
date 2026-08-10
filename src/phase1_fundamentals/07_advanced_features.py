@@ -3,6 +3,13 @@ Phase 1.7 - Python高级特性
 这些是Python面试常考点，也是写工程代码的必备技能
 """
 
+from pathlib import Path
+
+# 项目根目录（自动定位）
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+DATA_DIR.mkdir(exist_ok=True)
+
 # ============================================================
 # 1. 列表推导式（进阶）
 # ============================================================
@@ -134,7 +141,7 @@ def network_temp_dir(path):
         # 清理（这里只是演示，实际不会删除）
         print(f"  清理临时目录: {path}")
 
-with network_temp_dir("E:/ai_python/data/temp") as tmp_dir:
+with network_temp_dir(str(DATA_DIR / "temp")) as tmp_dir:
     print(f"  使用临时目录: {tmp_dir}")
 
 # ============================================================
@@ -288,7 +295,7 @@ def exercise_lazy_loader():
                        float(row.get('weight', 1.0)))
 
     # 使用
-    data_path = Path("E:/ai_python/data/edges.csv")
+    data_path = DATA_DIR / "edges.csv"
     if data_path.exists():
         print("\n惰性加载边:")
         edge_gen = lazy_load_edges(data_path)

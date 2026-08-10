@@ -13,15 +13,20 @@ Phase 8.1 - 机器学习与网络分析的集成
 
 import networkx as nx
 import numpy as np
+from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
+
+# 项目根目录（自动定位）
+RESULTS_DIR = Path(__file__).resolve().parent.parent.parent / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
 
 # 使用非交互式后端，避免GUI依赖
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'DejaVu Sans']
+plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 from collections import Counter
@@ -631,7 +636,7 @@ if __name__ == "__main__":
     results = run_full_experiment(
         N=500, m=3,
         label_method='degree_top10',
-        save_dir='E:/ai_python/results'
+        save_dir=str(RESULTS_DIR)
     )
 
     # 运行练习
