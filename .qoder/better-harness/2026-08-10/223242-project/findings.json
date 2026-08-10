@@ -1,92 +1,147 @@
 {
   "summary": {
     "projectName": "复杂网络级联失效仿真平台",
-    "locale": "zh-CN"
+    "locale": "zh-CN",
     "modelId": "agent-work-loop-v4",
     "reportContractVersion": 26,
     "overview": "项目具有清晰的阶段化学习结构和基础运行环境，但缺少项目级代理指令和充分的测试覆盖，导致 AI 代理缺乏项目特定上下文且大多数模块的变更无法自动化验证。",
-    "dimensions": [
-      {
-        "id": "task-understanding",
-        "label": "Task Understanding"
-        "score": 45,
-        "summary": "README.md 提供了项目身份标识，CLAUDE.md 包含详细的阶段化学习路径，但缺少 Qoder 项目级代理指令，代理需要依赖通用模式推断项目约定。"
-      },
-      {
-        "id": "controlled-execution",
-        "label": "Controlled Execution"
-        "score": 38,
-        "summary": "requirements.txt 和 setup.py 提供了依赖声明，环境验证命令存在于 CLAUDE.md 中，但缺少项目级 Qoder 规则和自动化工作流，执行路径依赖代理自行发现。"
-      },
-      {
-        "id": "change-validation",
-        "label": "Change Validation"
-        "score": 40,
-        "summary": "存在 tests/test_network.py 提供基础验证，但 24 个源文件中仅 1 个测试文件覆盖有限范围，大多数模块的变更缺乏针对性自动化检查。"
-      },
-      {
-        "id": "reliable-delivery",
-        "label": "Reliable Delivery"
-        "score": 25,
-        "summary": "未观察到 CI/CD 管道、验收标准或交付记录，所有验证停留在本地层面，无外部交付边界可确认。"
-      },
-      {
-        "id": "learning-capture",
-        "label": "Learning Capture"
-        "score": 35,
-        "summary": "无可比较的后续任务结果，未观察到可复用的改进验证，学习捕获机制尚处于初始状态。"
-      }
-    ],
     "aiAgentPractice": {
       "inspectedSurfaces": [],
       "coverageRows": [
         {
           "surface": "Skills",
-          "scopes": ["Global"],
-          "count": 58
+          "scopes": [
+            "Global"
+          ],
+          "count": 58,
+          "paths": [
+            "~/.agents/skills/api-design/SKILL.md",
+            "~/.agents/skills/benchmark/SKILL.md",
+            "~/.agents/skills/codebase-onboarding/SKILL.md",
+            "~/.agents/skills/coding-standards/SKILL.md",
+            "~/.agents/skills/database-migrations/SKILL.md",
+            "~/.agents/skills/django-patterns/SKILL.md",
+            "~/.agents/skills/django-security/SKILL.md",
+            "~/.agents/skills/django-tdd/SKILL.md",
+            "~/.agents/skills/django-verification/SKILL.md",
+            "~/.agents/skills/docker-patterns/SKILL.md",
+            "~/.agents/skills/e2e-testing/SKILL.md",
+            "~/.agents/skills/git-workflow/SKILL.md"
+          ]
         },
         {
           "surface": "Rules",
-          "scopes": ["Project"],
+          "scopes": [
+            "Project"
+          ],
           "count": 0
         },
         {
           "surface": "Hooks",
-          "scopes": ["Project"],
+          "scopes": [
+            "Project"
+          ],
           "count": 0
         },
         {
           "surface": "Commands",
-          "scopes": ["Project"],
+          "scopes": [
+            "Project"
+          ],
           "count": 0
         },
         {
           "surface": "Custom Agents",
-          "scopes": ["Project"],
+          "scopes": [
+            "Project"
+          ],
           "count": 0
         },
         {
           "surface": "MCP",
-          "scopes": ["Project"],
+          "scopes": [
+            "Project"
+          ],
           "count": 0
         },
         {
           "surface": "Workflows",
-          "scopes": ["Project"],
+          "scopes": [
+            "Project"
+          ],
           "count": 0
         },
         {
           "surface": "Memories",
-          "scopes": ["Project"],
+          "scopes": [
+            "Project"
+          ],
           "count": 0
         },
         {
           "surface": "Plugins",
-          "scopes": ["Plugin"],
+          "scopes": [
+            "Plugin"
+          ],
           "count": 0
         }
+      ],
+      "repositorySourceRows": [
+        {
+          "surface": "Rules",
+          "provider": "claude",
+          "owner": ".",
+          "count": 1,
+          "paths": [
+            "CLAUDE.md"
+          ]
+        }
       ]
-    }
+    },
+    "assignmentSummaries": [],
+    "dimensions": [
+      {
+        "id": "task-understanding",
+        "label": "任务理解",
+        "score": 45,
+        "summary": "README.md 提供了项目身份标识，CLAUDE.md 包含详细的阶段化学习路径，但缺少 Qoder 项目级代理指令，代理需要依赖通用模式推断项目约定。",
+        "findingRefs": [
+          "missing-project-agent-instructions"
+        ]
+      },
+      {
+        "id": "controlled-execution",
+        "label": "可控执行",
+        "score": 38,
+        "summary": "requirements.txt 和 setup.py 提供了依赖声明，环境验证命令存在于 CLAUDE.md 中，但缺少项目级 Qoder 规则和自动化工作流，执行路径依赖代理自行发现。",
+        "findingRefs": [
+          "missing-project-agent-instructions"
+        ]
+      },
+      {
+        "id": "change-validation",
+        "label": "改动验证",
+        "score": 40,
+        "summary": "存在 tests/test_network.py 提供基础验证，但 24 个源文件中仅 1 个测试文件覆盖有限范围，大多数模块的变更缺乏针对性自动化检查。",
+        "findingRefs": [
+          "test-coverage-too-narrow-for-module-changes"
+        ]
+      },
+      {
+        "id": "reliable-delivery",
+        "label": "可靠交付",
+        "score": 25,
+        "summary": "未观察到 CI/CD 管道、验收标准或交付记录，所有验证停留在本地层面，无外部交付边界可确认。",
+        "findingRefs": []
+      },
+      {
+        "id": "learning-capture",
+        "label": "经验沉淀",
+        "score": 35,
+        "summary": "无可比较的后续任务结果，未观察到可复用的改进验证，学习捕获机制尚处于初始状态。",
+        "findingRefs": []
+      }
+    ]
   },
   "findings": [
     {
@@ -94,12 +149,14 @@
       "title": "缺少项目级代理指令导致 AI 代理缺乏项目特定上下文",
       "severity": "Medium",
       "reason": "仓库包含 24 个源文件分布在 8 个阶段模块中，存在 CLAUDE.md（839行，仅 Claude 可用）和 README.md，但没有 Qoder 可识别的 AGENTS.md 或项目级 Rule。AI 代理缺少项目约定、模块结构、运行命令和输出路径等关键上下文，只能依赖通用模式推断。项目分析建议了 8 个可受益的作用域指令目录（src/phase1 至 src/phase8），但均无覆盖。",
-      "dimensionRefs": ["task-understanding", "controlled-execution"],
-      "aiFixPrompt": "在项目根目录创建 AGENTS.md，包含：项目概述（复杂网络级联失效仿真平台）、8 个阶段模块结构说明、Python 运行命令（python src/phaseN_xxx/file.py）、pytest 测试命令、results/ 输出目录约定、以及 data/ 目录的数据文件说明。参考现有 CLAUDE.md 中的项目知识，但转换为 Qoder AGENTS.md 格式。",
-      "expectedArtifact": "Rule"
       "expectedOutput": [
-        "创建一个根级 AGENTS.md，包含项目结构概览、运行和测试命令、模块说明、以及输出路径约定。",
-        "验证 AGENTS.md 可被 Qoder 识别为项目级 Rule。"
+        "Update the existing Rule owner identified by the reviewed evidence and retain a focused validation result."
+      ],
+      "expectedArtifact": "Rule",
+      "aiFixPrompt": "在项目根目录创建 AGENTS.md，包含：项目概述（复杂网络级联失效仿真平台）、8 个阶段模块结构说明、Python 运行命令（python src/phaseN_xxx/file.py）、pytest 测试命令、results/ 输出目录约定、以及 data/ 目录的数据文件说明。参考现有 CLAUDE.md 中的项目知识，但转换为 Qoder AGENTS.md 格式。",
+      "dimensionRefs": [
+        "task-understanding",
+        "controlled-execution"
       ]
     },
     {
@@ -107,12 +164,13 @@
       "title": "大多数模块的行为变更缺乏自动化验证手段",
       "severity": "Medium",
       "reason": "tests/test_network.py 是唯一的测试文件，覆盖 24 个源文件中的一部分网络分析功能。phase5_cascading（级联失效）、phase6_interdependent（相依网络）、phase8_ml_integration（机器学习预测）等核心模块完全没有针对性测试。对这些模块的变更无法通过自动化检查验证其行为正确性，变更验证维度受到实质性限制。",
-      "dimensionRefs": ["change-validation"],
-      "aiFixPrompt": "为核心模块添加针对性测试：1) tests/test_cascading.py 覆盖 phase5 级联失效仿真逻辑；2) tests/test_interdependent.py 覆盖 phase6 相依网络级联；3) tests/test_ml_prediction.py 覆盖 phase8 机器学习预测。每个测试文件应验证模块的核心函数输入输出和行为不变量。运行 pytest 确认通过。",
-      "expectedArtifact": "Test"
       "expectedOutput": [
-        "为核心仿真模块添加针对性单元测试，使 pytest 能验证关键行为不变量。",
-        "运行 pytest 确认新增测试全部通过。"
+        "Update the existing Test owner identified by the reviewed evidence and retain a focused validation result."
+      ],
+      "expectedArtifact": "Test",
+      "aiFixPrompt": "为核心模块添加针对性测试：1) tests/test_cascading.py 覆盖 phase5 级联失效仿真逻辑；2) tests/test_interdependent.py 覆盖 phase6 相依网络级联；3) tests/test_ml_prediction.py 覆盖 phase8 机器学习预测。每个测试文件应验证模块的核心函数输入输出和行为不变量。运行 pytest 确认通过。",
+      "dimensionRefs": [
+        "change-validation"
       ]
     }
   ]
