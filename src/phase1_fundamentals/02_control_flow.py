@@ -45,7 +45,9 @@ for i in range(5):  # 0, 1, 2, 3, 4
     print(i, end=" ")
 print()
 
-
+# for i in range(5):
+#     print(i, end = " ")
+# print()
 # print("\n--- range() 循环 ---")
 # for i in range(5):
 #     print(i, end=" ")
@@ -56,9 +58,9 @@ for i in range(0, 20, 3):  # 0, 3, 6, 9, 12, 15, 18
     print(i, end=" ")
 print()
 
-for i in range(0, 20, 3):
-    print(i, end=" ")
-print()
+# for i in range(0, 20, 3):
+#     print(i, end=" ")
+# print()
 
 # 遍历列表
 print("\n--- 遍历列表 ---")
@@ -66,11 +68,12 @@ models = ["ER随机", "WS小世界", "BA无标度", "规则网络"]
 for model in models:
     print(f"  网络模型: {model}")
 
-models = ["ER随机","WS小世界", "BA无标度", "规则网络"]
-for model in models:
-    print(f" 网络模型: {model}")
 # 带索引遍历（用 enumerate）
 print("\n--- enumerate ---")
+for i, model in enumerate(models):
+    print(f"  {i+1}. {model}")
+    
+models = ["ER随机", "WS小世界", "BA无标度", "规则网络"]
 for i, model in enumerate(models):
     print(f"  {i+1}. {model}")
 
