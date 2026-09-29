@@ -1,5 +1,7 @@
 # 复杂网络级联失效仿真平台
 
+> **本文件只写本项目内容。** 用户画像 / 研究方向口径 / 协作硬规则 / 机器环境见全局正本 `C:\Users\Admin\AI-Memory\GLOBAL_MEMORY.md`；上层项目记忆：`E:\KeYan\Academic Roadmap\AGENTS.md`。
+
 Complex Network Cascading Failure Simulation Platform — 从 Python 零基础到完成导师课题的完整学习项目。
 
 ## 项目概述
