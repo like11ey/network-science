@@ -19,6 +19,8 @@ print(f"  中间: {nodes[1:4]}")      # [2, 3, 4]
 print(f"  步长: {nodes[::2]}")      # [1, 3, 5]
 print(f"  反转: {nodes[::-1]}")     # [5, 4, 3, 2, 1]
 
+# print(f"  前三个：{nodes[:3]}")
+# print(f"  步长：{nodes[::2]}")
 # 列表方法
 edges = [10, 20, 30]
 edges.append(40)          # 末尾添加
@@ -30,6 +32,16 @@ edges.remove(30)          # 删除第一个匹配值
 popped = edges.pop()     # 弹出最后一个
 print(f"删除后: {edges}, 弹出: {popped}")
 
+
+edge = [1, 2, 3]
+edge.append(4)
+edge.insert(0, 0)
+edge.extend([5, 6])
+print(f"\n列表操作：{edge}")
+
+edge.remove(2)
+popped = edge.pop()
+print(f"删除后：{edge}, 弹出：{popped}")
 # 列表排序
 degrees = [3, 1, 4, 1, 5, 9, 2, 6]
 degrees.sort()            # 原地排序

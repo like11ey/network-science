@@ -70,9 +70,13 @@ for model in models:
 
 # 带索引遍历（用 enumerate）
 print("\n--- enumerate ---")
+models = ["ER随机", "WS小世界", "BA无标度", "规则网络"]
 for i, model in enumerate(models):
     print(f"  {i+1}. {model}")
-    
+
+models = ["ER随机", "WS小世界", "BA无标度"]
+for i, model in enumerate(models):
+    print(f" {i+1}. {model}")
 models = ["ER随机", "WS小世界", "BA无标度", "规则网络"]
 for i, model in enumerate(models):
     print(f"  {i+1}. {model}")
