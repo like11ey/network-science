@@ -240,7 +240,7 @@ class TestL1Dynamics:
     def _cfg_and_ref(self, delta):
         L1 = _load("L1_intra_layer_dynamics")
         G_A, G_B = _make_pair(N=60, m=2)
-        cfg = L1.AutoDynamicsConfig(lam=0.5, omega=0.3, delta=delta)
+        cfg = L1.AutoDynamicsConfig(mu=0.4, lam=0.3, omega=0.3, delta=delta)
         x_ref = L1.healthy_reference(G_A, G_B, cfg)
         return L1, cfg, x_ref
 
@@ -291,18 +291,22 @@ class TestL2StateDriven:
         assert abs(L2.coupling_weight(1.0, 0.2, cfg) - 0.5) < 1e-12
         assert abs(L2.coupling_weight(0.0, 0.0, cfg) - 0.5) < 1e-12
 
-    def test_worse_state_means_stronger_coupling(self):
+    def test_worse_state_means_weaker_delivered_coupling(self):
+        """状态越差 ⇒ 跨层供过来的越少（w 单调递减）；ρ=0 ⇒ 恒为 w0。"""
         L2 = _load("L2_state_driven_coupling")
-        cfg = L2.StateDrivenConfig(w0=0.5, rho=1.0)
+        cfg = L2.StateDrivenConfig(w0=1.0, rho=1.0)
         w_healthy = L2.coupling_weight(1.0, 1.0, cfg)
         w_degraded = L2.coupling_weight(0.4, 1.0, cfg)
         w_dead = L2.coupling_weight(0.0, 1.0, cfg)
-        assert w_healthy < w_degraded < w_dead
+        assert w_healthy > w_degraded > w_dead
+        assert abs(w_healthy - 1.0) < 1e-12  # 满血不打折 ⇒ 健康不动点为 1
+        cfg0 = L2.StateDrivenConfig(w0=1.0, rho=0.0)
+        assert abs(L2.coupling_weight(0.0, 1.0, cfg0) - 1.0) < 1e-12
 
     def test_zero_rho_zero_phi_degenerates_to_L0(self):
         """⭐ 退化性检验：W ≡ w0（ρ=0）且 φ=0 ⇒ 无动力学失效 ⇒ 必须等于 L0。"""
         L2 = _load("L2_state_driven_coupling")
-        cfg = L2.StateDrivenConfig(w0=0.5, rho=0.0, phi=0.0)
+        cfg = L2.StateDrivenConfig(w0=1.0, rho=0.0, phi=0.0)
         curve_L2 = _S_curve(lambda net: L2.L2Rule(cfg), FAIR_FRACTIONS)
         curve_L0 = _S_curve(lambda net: None, FAIR_FRACTIONS)
         assert np.allclose(curve_L2, curve_L0, atol=1e-9)

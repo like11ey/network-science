@@ -11,16 +11,29 @@ Phase 6 · L2 —— 加状态驱动耦合 W(t)（耦合强度随状态演化 + 
 
 【本级的模型（本项目口径，汇报时要说明）】
   1. 耦合权重（边上的量，随时间变）：
-         w_ij(t) = w0 · [1 + ρ · (1 − min(x_i(t), x_j(t)))]
-     含义：两边都满血时 w = w0；任一方掉到 0 时 w = w0·(1+ρ)。
+         w_ij(t) = w0 / [1 + ρ · (1 − min(x_i(t), x_j(t)))]
+     含义：两边都满血时 w = w0（不打折）；任一方掉到 0 时 w = w0/(1+ρ)。
+     物理读法：**状态越差，跳层能供过来的越少**（耦合通道自己也跟着退化）。
      ρ = 0 ⇒ W ≡ w0 ⇒ **常数耦合，退回 L1**（退化性检验用）。
-  2. 供给与需求：
-         供给 s_i(t) = (1−ω)·⟨x_j(t)⟩_{j∈存活邻居} + ω·w_ij(t)·x_partner(t)
+  2. 供给与需求（增量式，与 L1 同一骨架 + W(t)）：
+         x_i(t+1) = x_i(t)
+                  + μ·(1 − x_i(t))                            ← 自反馈回弹（与 L1 的 μ 同义）
+                  + (1−ω−μ)·( Σ_{存活 j} x_j(t) / k_i⁰ − x_i(t) )  ← 网内供给
+                  + ω·( w_ij(t)·x_partner(t) − x_i(t) )            ← 跨层供给（带 W(t) 打折）
          需求 d_i     = 1（归一化；将来可按节点重要度设成 d_i ≠ 1）
   3. 满足度判据：
          Φ_i(t) = s_i(t) / d_i ；  Φ_i(t) < φ  →  该节点失去功能
      φ 是"服务质量底线"：φ=0 表示再差也能凑合（⇒ 无动力学失效）。
   4. 布尔耦合 + GCC 剪枝照旧兜底。
+
+     ⚠️ 写法上的两个坑（2026-10-15 修，与 L1 同源）：
+       · 耦合项必须是**打折（除以 1+ρ…）**而不是放大：写放大等于给退化节点
+         "补贴"更多供给，机制反而变成稳定化，与"状态差 → 更容易崩"的假设相反。
+       · 网内项按**原始度 k_i⁰** 归一（死邻居贡献 0，不被重新归一化抹平），
+         且**没有伙伴的节点不吃 ω 项**（否则健康网自己就先不合格）。
+       · 必须有**自反馈回弹项 μ**（与 L1 同源）：只写 (1−ω)·供给 + ω·跨层 时，
+         一个"没有同层邻居"的孤立节点只能拿到 ω·伙伴，反过来把伙伴也拖下去，
+         逐层互拖 ⇒ 健康网在 φ 稍大时就整网归零。
 
 【⭐ 退化性检验】
   ρ = 0（W ≡ w0）且 φ = 0 ⇒ 本级必须**完全退回 L0**（无动力学失效）。
@@ -66,13 +79,15 @@ class StateDrivenConfig:
     """
     L2 的旋钮。
 
-    w0 : 基础耦合强度（ρ=0 时 W ≡ w0）
-    rho: 耦合放大系数 ρ —— 状态越差，耦合越重（ρ=0 ⇒ 退回 L1）
+    w0 : 基础耦合强度（满血且 ρ=0 时 W ≡ w0；健康不动点=1 要求 w0=1）
+    rho: 耦合退化系数 ρ —— 状态越差，跨层供给打折越狠（ρ=0 ⇒ 退回 L1）
     phi: 服务质量底线 φ —— 满足度低于它就停机（φ=0 ⇒ 退回 L1）
     ω  : 跨层影响的相对权重（与 L1 的 ω 同义）
+    mu : 自反馈回弹强度（与 L1 的 μ 同义；网内权重 = 1−ω−μ）
     """
 
-    def __init__(self, w0=0.5, rho=1.0, phi=0.3, omega=0.3, max_iter=30, tol=1e-6):
+    def __init__(self, w0=1.0, rho=1.0, phi=0.3, omega=0.3, mu=0.4, max_iter=30, tol=1e-6):
+        self.mu = mu
         self.w0 = w0
         self.rho = rho
         self.phi = phi
@@ -87,13 +102,13 @@ class StateDrivenConfig:
 
 def coupling_weight(x_i, x_j, cfg):
     """
-    W(t) 的核心一行：**状态越差，耦合越重**。
+    W(t) 的核心一行：**状态越差，跨层供给打折越狠**。
 
-        w_ij(t) = w0 · [1 + ρ·(1 − min(x_i, x_j))]
+        w_ij(t) = w0 / [1 + ρ·(1 − min(x_i, x_j))]
 
-    学过一点点代数的同学可以把它看成 w0 加上一个"退化惩罚项"。
+    两边满血 ⇒ w = w0；一边掉到 0 ⇒ w = w0/(1+ρ)。ρ=0 ⇒ 常数耦合（退回 L1）。
     """
-    return cfg.w0 * (1.0 + cfg.rho * (1.0 - min(x_i, x_j)))
+    return cfg.w0 / (1.0 + cfg.rho * (1.0 - min(x_i, x_j)))
 
 
 def _step_states_w(net, cfg, layer, other):
@@ -104,19 +119,31 @@ def _step_states_w(net, cfg, layer, other):
             new_x[node] = 0.0
             continue
 
-        neighbours = [j for j in net.G[layer].neighbors(node) if net.alive[layer][j]]
-        neighbour_mean = (sum(net.x[layer][j] for j in neighbours) / len(neighbours)
-                          if neighbours else 0.0)
+        degree0 = net.G[layer].degree(node) or 1  # 原始度：分母固定，死邻居贡献 0
+        neighbour_supply = sum(
+            net.x[layer][j] for j in net.G[layer].neighbors(node) if net.alive[layer][j]
+        ) / degree0
 
         partner = net.partner[layer].get(node)
         partner_alive = partner is not None and net.alive[other][partner]
         if partner_alive:
-            w = coupling_weight(net.x[layer][node], net.x[other][partner], cfg)
-            cross = w * net.x[other][partner]
+            x_j = net.x[other][partner]
+            cross = coupling_weight(net.x[layer][node], x_j, cfg) * x_j
         else:
             cross = 0.0
 
-        new_x[node] = (1 - cfg.omega) * neighbour_mean + cfg.omega * cross
+        if partner is None:  # 没有伙伴 ⇔ 不吃跨层项（权重不"吞掉"这份供给）
+            x = net.x[layer][node]
+            new_x[node] = x + cfg.mu * (1.0 - x) + (1.0 - cfg.omega - cfg.mu) * (neighbour_supply - x)
+            new_x[node] = min(1.0, max(0.0, new_x[node]))
+            continue
+
+        x = net.x[layer][node]
+        new_x[node] = (x
+                       + cfg.mu * (1.0 - x)
+                       + (1.0 - cfg.omega - cfg.mu) * (neighbour_supply - x)
+                       + cfg.omega * (cross - x))
+        new_x[node] = min(1.0, max(0.0, new_x[node]))
     return new_x
 
 
@@ -157,12 +184,12 @@ def run_experiment(N=300, m=3, n_trials=3, seed=42, save=True):
     fractions = np.linspace(0.0, 0.4, 17)
     settings = {
         "ρ=0, φ=0（退回 L0）": StateDrivenConfig(rho=0.0, phi=0.0),
-        "ρ=0, φ=0.3（常数耦合）": StateDrivenConfig(rho=0.0, phi=0.3),
-        "ρ=1, φ=0.3（状态驱动）": StateDrivenConfig(rho=1.0, phi=0.3),
-        "ρ=2, φ=0.5（强状态驱动）": StateDrivenConfig(rho=2.0, phi=0.5),
+        "ρ=0, φ=0.8（常数耦合+严 QoS）": StateDrivenConfig(rho=0.0, phi=0.8),
+        "ρ=1, φ=0.8（状态驱动）": StateDrivenConfig(rho=1.0, phi=0.8),
+        "ρ=3, φ=0.9（强状态驱动）": StateDrivenConfig(rho=3.0, phi=0.9),
     }
 
-    print(f"=== {LEVEL}：耦合随状态变强 ⇒ 级联更早发生 ===")
+    print(f"=== {LEVEL}：耦合随状态退化（供给打折）⇒ 级联更早发生 ===")
     curves = {}
     rng = np.random.default_rng(seed)
     nodes_A = sorted(G_A.nodes())

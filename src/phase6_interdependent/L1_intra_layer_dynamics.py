@@ -10,16 +10,30 @@ Phase 6 · L1 —— 加网内自动力学（自动力学 M(x) + δ 容忍判据
 【本级的模型（本项目口径，汇报时要说明）】
   1. 每个节点有一个功能量 x_i ∈ [0,1]（1 = 正常，0 = 完全失效）。
   2. 自动力学（每一步都算一遍，直到稳定）：
-         x_i(t+1) = (1−ω)·[(1−λ)·x_i(t) + λ·⟨x_j(t)⟩_{j∈邻居}] + ω·x_partner(t)
+         x_i(t+1) = x_i(t)
+                  + μ·(1 − x_i(t))                        ← 自反馈：往健康水平回弹（论文的 W(x_i)）
+                  + λ·( Σ_{存活 j} x_j(t) / k_i⁰ − x_i(t) )  ← 网内供给（论文的 Q 项）
+                  + ω·( x_partner(t) − x_i(t) )             ← 跨层供给（无伙伴的节点不吃这一项）
      各项含义：
-         ⟨x_j⟩   —— 我周围的邻居平均还剩下多少功能（网内互相供电/供货）
-         x_partner —— 我在另一层的依赖伙伴的功能（跨层耦合）
-         λ       —— 我多大程度靠邻居（0 = 全靠自己，1 = 全看邻居）
-         ω       —— 我多大程度靠另一层（0 = 单层网络，1 = 完全依赖信息层）
+         μ       —— 自反馈强度：没有外援时我自己能回到多少（μ=0 就是"纯被邻居供养"）
+         λ       —— 网内依赖强度（邻居给我供多少）
+         ω       —— 跨层依赖强度（另一层的伙伴给我供多少）
+         k_i⁰    —— 节点 i 的**原始度**（分母固定，死掉的邻居就是实实在在少一份供给）
      **完整网络下这个动力学的不动点是 x = 1（人人满血）**，这就是健康参考值 x̃_i。
+
+     ⚠️ 为什么必须有 μ（2026-10-15 修，踩坑记录）：
+       早期版本写成 x_i ← (1−ω)[(1−λ)x_i + λ·⟨x_j⟩_存活邻居] + ω·x_partner，
+       并且邻居项用"**存活邻居的平均**"。两个毛病叠加 ⇒ 缺口被抹平后又沿全网扩散：
+       实测只删 5% 的节点，收敛后 **285/285 个存活节点全部低于 0.8、均值 0.574**，
+       于是任何有限 δ 都判"全体超差"，整网在 f≈0.03 就崩，δ 完全失去旋钮意义。
+       根因：论文 Eq.1 的 dx_i/dt = W(x_i) + Σ_j A_ij Q(x_i,x_j) 里 W(x_i) 是**自反馈**
+       （节点自身的产生/衰减），它给系统提供回弹力；用平均又把死邻居的缺口归一掉了。
+       修法：① 加自反馈项 μ·(1−x_i)；② 邻居项按**原始度**归一（死邻居贡献 0，不被归一化补偿）。
   3. 容忍判据（本级的核心）：
          |1 − x_i / x̃_i| > δ  →  判定该节点失效
      通俗说法：性能掉出 δ 的容忍带就"停机"，而不是断开才停机。
+     论文口径（Duan 2019）：δ 是"调光旋钮"——δ 小 = 挑剔易失效；δ 足够大 ⇒ 退回纯结构依赖。
+     论文取值：Fig 3B 用 δ=1 vs 0.15；Fig 4D 用 δ=0.05/0.08/0.10/0.15。
   4. 仍有布尔耦合（伙伴死了我也死）+ GCC 剪枝兜底。
 
 【⭐ 退化性检验（科研纪律）】
@@ -62,14 +76,18 @@ __all__ = ["AutoDynamicsConfig", "healthy_reference", "run_dynamics", "L1Rule", 
 
 class AutoDynamicsConfig:
     """
-    自动力学的三个旋钮（L1 的全部可调参数）。
+    自动力学的四个旋钮（L1 的全部可调参数）。
 
-    lam (λ) : 网内依赖强度，x 越靠邻居平均
+    mu   (μ): 自反馈强度（回弹到健康水平 1），对应论文 Eq.1 的 W(x_i)
+    lam  (λ): 网内依赖强度，x 越靠邻居供给
     omega(ω): 跨层依赖强度，x 越靠另一层的伙伴
     delta(δ): 容忍带宽，性能掉出 δ 才停机（δ=1 ⇒ 永不因性能停机 ⇒ 退回 L0）
+
+    ⚠️ μ+λ+ω ≤ 1 才有稳定不动点（默认 0.4+0.3+0.3 = 1.0）。
     """
 
-    def __init__(self, lam=0.5, omega=0.3, delta=0.2, tol=1e-6, max_iter=100):
+    def __init__(self, mu=0.4, lam=0.3, omega=0.3, delta=0.2, tol=1e-6, max_iter=100):
+        self.mu = mu
         self.lam = lam
         self.omega = omega
         self.delta = delta
@@ -77,7 +95,7 @@ class AutoDynamicsConfig:
         self.max_iter = max_iter
 
     def __repr__(self):
-        return (f"AutoDynamicsConfig(lam={self.lam}, omega={self.omega}, "
+        return (f"AutoDynamicsConfig(mu={self.mu}, lam={self.lam}, omega={self.omega}, "
                 f"delta={self.delta})")
 
 
@@ -86,6 +104,10 @@ def _step_states(net, cfg, layer, other):
     算一层节点的下一步状态 x(t+1)。
 
     只考虑**当前存活**的邻居（失效邻居对 x 的贡献为 0，相当于断路）。
+
+    ⚠️ 邻居项按**原始度 k⁰ 归一**，不是按存活邻居个数归一：
+       按存活个数归一 = "少一个邻居，剩下的邻居把均值拉回 1" ⇒ 缺口被抹平；
+       按原始度归一 = "死一个邻居就是少 1/k⁰ 份供给" ⇒ 缺口真实存在（论文的 invisible path）。
     """
     new_x = {}
     for node in net.G[layer].nodes():
@@ -93,16 +115,25 @@ def _step_states(net, cfg, layer, other):
             new_x[node] = 0.0
             continue
 
-        neighbours = [j for j in net.G[layer].neighbors(node) if net.alive[layer][j]]
-        neighbour_mean = (sum(net.x[layer][j] for j in neighbours) / len(neighbours)
-                          if neighbours else 0.0)
+        degree0 = net.G[layer].degree(node) or 1  # 原始度：分母固定
+        neighbour_supply = sum(
+            net.x[layer][j] for j in net.G[layer].neighbors(node) if net.alive[layer][j]
+        ) / degree0
 
         partner = net.partner[layer].get(node)
-        partner_x = (net.x[other][partner]
-                     if partner is not None and net.alive[other][partner] else 0.0)
 
-        local = (1 - cfg.lam) * net.x[layer][node] + cfg.lam * neighbour_mean
-        new_x[node] = (1 - cfg.omega) * local + cfg.omega * partner_x
+        x = net.x[layer][node]
+        # 自反馈回弹（论文的 W(x_i)）+ 网内供给（论文的 Q 项）
+        x_new = x + cfg.mu * (1.0 - x) + cfg.lam * (neighbour_supply - x)
+
+        # 跨层供给：**只有真的有伙伴的节点才吃这一项**
+        # （coupled_fraction<1 时部分节点没有伙伴；若给它们按 0 伙伴算，
+        #   就会凭空多背一份 ω 欠供，健康网自己就先不合格——2026-10-15 修）
+        if partner is not None:
+            partner_x = net.x[other][partner] if net.alive[other][partner] else 0.0
+            x_new += cfg.omega * (partner_x - x)
+
+        new_x[node] = min(1.0, max(0.0, x_new))  # 功能量夹在 [0,1]
     return new_x
 
 
@@ -133,7 +164,7 @@ def healthy_reference(G_A, G_B, cfg, coupled_fraction=1.0, seed=0):
     量健康参考值 x̃_i：在**完好网络**上跑一遍自动力学。
 
     为什么要参考值？因为容忍判据是"相对自己正常水平掉了多少"，
-    所以必须先知道"正常水平"是多少。本模型的线性动力学不动点是 1，
+    所以必须先知道"正常水平"是多少。完好网络上的不动点是 x=1（人人满血），
     但代码写成通用形式，将来换成非线性 M(x) 时不用改。
     """
     net = InterdependentNetwork(G_A, G_B, coupled_fraction=coupled_fraction, seed=seed)
@@ -177,11 +208,14 @@ def run_experiment(N=300, m=3, n_trials=3, seed=42, save=True):
     G_A = nx.barabasi_albert_graph(N, m, seed=seed)
     G_B = nx.barabasi_albert_graph(N, m, seed=seed + 1)
     fractions = np.linspace(0.0, 0.4, 17)
-    deltas = [0.05, 0.2, 0.5, 1.0]
+    deltas = [0.05, 0.1, 0.15, 0.3, 1.0]  # 前四档对齐 Duan 2019 Fig.4D，1.0 = 退化档
+
+    print(f"=== {LEVEL}：容忍带宽 δ 越小越脆弱（μ=0.4, λ=0.3, ω=0.3）===")
+    print("  δ=1.0 这一行应当与 L0 完全一致（退化性检验）")
 
     curves = {}
     for delta in deltas:
-        cfg = AutoDynamicsConfig(lam=0.5, omega=0.3, delta=delta)
+        cfg = AutoDynamicsConfig(mu=0.4, lam=0.3, omega=0.3, delta=delta)
         x_ref = healthy_reference(G_A, G_B, cfg)
         rng = np.random.default_rng(seed)
         nodes_A = sorted(G_A.nodes())
@@ -197,9 +231,6 @@ def run_experiment(N=300, m=3, n_trials=3, seed=42, save=True):
             curve.append(float(np.mean(trials)))
         curves[delta] = curve
         print(f"  δ={delta:<4} → S(f=0.2)={np.interp(0.2, fractions, curve):.3f}")
-
-    print(f"=== {LEVEL}：容忍带宽 δ 越小越脆弱（λ=0.5, ω=0.3）===")
-    print("  δ=1.0 这一行应当与 L0 完全一致（退化性检验）")
 
     if save:
         plt.figure(figsize=(9, 6))
