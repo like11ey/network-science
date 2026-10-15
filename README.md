@@ -55,6 +55,7 @@ ai_python/
 │   │   ├── L1_intra_layer_dynamics.py # L1: 网内自动力学 + 容忍判据 δ（PNAS 2019）
 │   │   ├── L2_state_driven_coupling.py# L2: 状态驱动耦合 W(t) + 满足度 φ（自研）
 │   │   ├── L3_hypergraph_logic.py     # L3: 超图逻辑依赖 + 功能度量 F
+│   │   ├── cps_cascade.py             # CPS 主循环: W^C/W^S 耦合张量 + δ/φ 双判据
 │   │   └── README.md                  # 四级台阶讲解（先读这个）
 │   │
 │   ├── metrics/                       # 韧性度量工具箱（跨 phase 共用口径）
@@ -86,9 +87,9 @@ ai_python/
 │   ├── ml_model_comparison.png        # ML模型对比
 │   └── ...
 │
-├── notebooks/                         # 学习 notebook（01–06，边跑边学；见其 README）
+├── notebooks/                         # 学习 notebook（01–07，边跑边学；见其 README）
 │
-└── tests/                             # 测试文件（111 项）
+└── tests/                             # 测试文件（115 项）
     ├── test_network.py
     ├── test_interdependent.py         # Phase 6 四级台阶 + 三条退化性检验
     └── test_metrics.py
@@ -140,6 +141,7 @@ python src/phase6_interdependent/L0_static_dependency.py
 python src/phase6_interdependent/L1_intra_layer_dynamics.py
 python src/phase6_interdependent/L2_state_driven_coupling.py
 python src/phase6_interdependent/L3_hypergraph_logic.py
+python src/phase6_interdependent/cps_cascade.py
 
 # Phase 7: 可视化
 python src/phase7_visualization/01_network_viz.py

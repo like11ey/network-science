@@ -1,4 +1,4 @@
-# notebooks · 边跑边学（6 个）
+# notebooks · 边跑边学（7 个）
 
 从零学这套内核的顺序：**先跑代码看现象，再回读源码**。每个 notebook 都是
 "环境准备 → 分步演示 → 思考题"的结构，代码单元全部经过等价执行验证（见下）。
@@ -11,6 +11,7 @@
 | 04 | `04_L2_状态驱动耦合Wt.ipynb` | `L2_state_driven_coupling.py` | `W(t)` 状态驱动耦合、满足度 φ、**ρ=0∧φ=0 退回 L0** |
 | 05 | `05_L3_超图逻辑依赖.ipynb` | `L3_hypergraph_logic.py` | 超边与 AND/OR/k-of-N 语义、功能度量 F、**二元 AND 退回 L0** |
 | 06 | `06_韧性度量与实验设计.ipynb` | `src/metrics/` | 曲线 → p_c / 损失面积 / RHI / 恢复指标 / 脆弱性探针 |
+| 07 | `07_CPS主循环_耦合张量.ipynb` | `cps_cascade.py` | 两张耦合张量 `W^C`/`W^S`、δ/φ 双判据、**关掉判据退回 L0** 的退化性检验 |
 
 ## 怎么运行
 
@@ -27,7 +28,7 @@ pip install jupyter ipykernel
 ## 这些 notebook 是怎么验证过的
 
 写 notebook 时本机没有 jupyter，所以用**等价执行**验证：把每个 `.ipynb` 的所有 code cell 拼成
-一个脚本，在项目根目录下 `exec`（`matplotlib` 用 Agg 后端）。6 个 notebook 全部通过。
+一个脚本，在项目根目录下 `exec`（`matplotlib` 用 Agg 后端）。7 个 notebook 全部通过。
 
 结论：**代码是对的，只是渲染层没在本机跑过**。首次在 Jupyter 里打开时如果遇到路径问题，
 先看第一格（它会从当前目录往上找到 `src/phase6_interdependent`）。

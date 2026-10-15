@@ -354,20 +354,20 @@ class TestL3Hypergraph:
         assert np.allclose(curve_L3, curve_L0, atol=1e-9)
 
     def test_and_is_stricter_than_or(self):
-        """同一批功能单元 + 同一次攻击：AND 语义的功能度量不应高于 OR。"""
+        """同一批功能单元 + 同一次攻击：语义越宽容 ⇒ 功能度量越高（AND < k-of-N < OR）。"""
         L3 = _load("L3_hypergraph_logic")
         G_A, G_B = _make_pair(N=60, m=2)
         template = L3.HyperedgeNetwork(G_A, G_B, seed=0)
         units = L3.random_functional_hyperedges(template, n_edges=20, size=3, seed=1)
-        and_units = [L3.Hyperedge(list(e.members), "AND") for e in units]
-        or_units = [L3.Hyperedge(list(e.members), "OR") for e in units]
 
         failed = sorted(G_A.nodes())[:6]
-        net_and = L3.HyperedgeNetwork(G_A, G_B, hyperedges=and_units, seed=0)
-        net_and.run(failed, rule=net_and.hyperedge_rule())
-        net_or = L3.HyperedgeNetwork(G_A, G_B, hyperedges=or_units, seed=0)
-        net_or.run(failed, rule=net_or.hyperedge_rule())
-        assert net_and.functional_measure() <= net_or.functional_measure() + 1e-9
+        measures = {}
+        for rule, k in (("AND", 1), ("k-of-N", 2), ("OR", 1)):
+            edges = [L3.Hyperedge(list(e.members), rule, k=k) for e in units]
+            net = L3.HyperedgeNetwork(G_A, G_B, hyperedges=edges, seed=0)
+            net.run(failed, rule=net.hyperedge_rule())
+            measures[rule] = net.functional_measure()
+        assert measures["AND"] <= measures["k-of-N"] <= measures["OR"]
 
     def test_functional_measure_drops_after_attack(self):
         L3 = _load("L3_hypergraph_logic")
@@ -387,3 +387,48 @@ class TestL3Hypergraph:
                                             "OR（任一活着就工作）"}
         for d in out["curves"].values():
             assert len(d["S"]) == len(d["F"]) == len(out["fractions"])
+
+
+# ============================================================
+# cps_cascade.py 主循环（W^C / W^S 两张耦合张量）
+# ============================================================
+
+class TestCPSMainLoop:
+
+    def test_coupling_weight_shrinks_with_worse_state(self):
+        """W(t)：状态越差折扣越狠；h=0 ⇒ 退回常数 τ。"""
+        CPS = _load("cps_cascade")
+        assert CPS.coupling_weight(1.0, 1.0, 1.0, 3.0) == 1.0
+        assert CPS.coupling_weight(0.2, 1.0, 1.0, 3.0) < 1.0
+        assert CPS.coupling_weight(0.2, 0.0, 0.5, 0.0) == 0.5
+
+    def test_delta_one_phi_zero_degenerates_to_L0(self):
+        """⭐ 退化性检验：关掉 δ 与 φ ⇒ 主循环必须与 L0 完全一致。"""
+        CPS = _load("cps_cascade")
+        cfg = CPS.CPSConfig(h_s=0.0, h_c=0.0, delta=1.0, phi=0.0)
+        curve_cps = _S_curve(lambda net: net.cps_rule(cfg), FAIR_FRACTIONS,
+                             net_cls=CPS.CPSNetwork)
+        curve_L0 = _S_curve(lambda net: None, FAIR_FRACTIONS)
+        assert np.allclose(curve_cps, curve_L0, atol=1e-9)
+
+    def test_phi_judgement_bites(self):
+        """φ 判据打开后，同样的攻击必须造成更多失效（S 更低）。"""
+        CPS = _load("cps_cascade")
+        cfg_off = CPS.CPSConfig(delta=1.0, phi=0.0)
+        cfg_on = CPS.CPSConfig(delta=1.0, phi=0.95)
+        curve_off = _S_curve(lambda net: net.cps_rule(cfg_off), FAIR_FRACTIONS,
+                             net_cls=CPS.CPSNetwork, n_trials=1)
+        curve_on = _S_curve(lambda net: net.cps_rule(cfg_on), FAIR_FRACTIONS,
+                            net_cls=CPS.CPSNetwork, n_trials=1)
+        assert curve_on[-1] <= curve_off[-1]
+
+    def test_state_driven_degradation_is_not_more_resilient(self):
+        """h=0（常数耦合）与 h=3（状态驱动打折）：打折只会更差，不会更好。"""
+        CPS = _load("cps_cascade")
+        cfg_flat = CPS.CPSConfig(h_s=0.0, h_c=0.0, delta=0.5, phi=0.0)
+        cfg_deg = CPS.CPSConfig(h_s=3.0, h_c=3.0, delta=0.5, phi=0.0)
+        curve_flat = _S_curve(lambda net: net.cps_rule(cfg_flat), FAIR_FRACTIONS,
+                              net_cls=CPS.CPSNetwork, n_trials=1)
+        curve_deg = _S_curve(lambda net: net.cps_rule(cfg_deg), FAIR_FRACTIONS,
+                             net_cls=CPS.CPSNetwork, n_trials=1)
+        assert curve_deg[-1] <= curve_flat[-1] + 1e-9

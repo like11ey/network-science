@@ -26,8 +26,8 @@ Complex Network Cascading Failure Simulation Platform — 从 Python 零基础�
 ├── src/                  # 源代码（8 个阶段子包）
 ├── data/                 # 数据文件（运行时自动生成）
 ├── results/              # 输出图表（运行时自动创建）
-├── notebooks/            # 学习 notebook（01–06，边跑边学）
-├── tests/                # 测试文件（111 项）
+├── notebooks/            # 学习 notebook（01–07，边跑边学）
+├── tests/                # 测试文件（115 项）
 ├── requirements.txt      # Python 依赖
 ├── setup.py              # 包安装配置
 ├── CLAUDE.md             # 详细学习指南
@@ -83,8 +83,9 @@ Complex Network Cascading Failure Simulation Platform — 从 Python 零基础�
 | `L1_intra_layer_dynamics.py` | L1：网内自动力学 `M(x)` + 容忍判据 δ（对拍 Duan et al. PNAS 2019；**δ=1 退回 L0**） |
 | `L2_state_driven_coupling.py` | L2：状态驱动耦合 `W(t)` + 满足度判据 φ（自研点，**ρ=0∧φ=0 退回 L0**） |
 | `L3_hypergraph_logic.py` | L3：超边 + AND/OR/k-of-N + 功能度量 F（对拍 Battiston Nat. Phys. 2021；**只用二元 AND 超边退回 L0**） |
+| `cps_cascade.py` | CPS 主循环：两张耦合张量 `W^C`/`W^S`（状态驱动打折）+ δ/φ 双判据 + 超边逻辑同轮跑（研究内容 1 的 CSQ1；**δ=1 且 φ=0 ⇒ 退回 L0**） |
 
-配套：度量工具 `src/metrics/`（p_c / 损失面积 / RHI / 恢复指标 / 脆弱性探针）、学习 notebook `notebooks/01–06`、测试 `tests/test_interdependent.py` + `tests/test_metrics.py`。
+配套：度量工具 `src/metrics/`（p_c / 损失面积 / RHI / 恢复指标 / 脆弱性探针）、学习 notebook `notebooks/01–07`、测试 `tests/test_interdependent.py` + `tests/test_metrics.py`。
 
 ### Phase 7: 网络可视化 (`src/phase7_visualization/`)
 
@@ -129,6 +130,7 @@ python src/phase6_interdependent/L0_static_dependency.py
 python src/phase6_interdependent/L1_intra_layer_dynamics.py
 python src/phase6_interdependent/L2_state_driven_coupling.py
 python src/phase6_interdependent/L3_hypergraph_logic.py
+python src/phase6_interdependent/cps_cascade.py
 
 # Phase 7: 可视化
 python src/phase7_visualization/01_network_viz.py
@@ -140,7 +142,7 @@ python src/phase8_ml_integration/01_ml_prediction.py
 ### 运行测试
 
 ```bash
-# 运行全部测试（111 项：network/cascading/interdependent/metrics/ml）
+# 运行全部测试（115 项：network/cascading/interdependent/metrics/ml）
 python -m pytest -q
 
 # 运行全部测试（详细输出）
