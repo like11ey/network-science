@@ -1,0 +1,102 @@
+# Phase 6 · 信息-物理耦合网络内核（研究内容 1：动态耦合超图建模）
+
+> 这是整个项目**最高优先级**的一级：计划书「研究内容 1」的代码落点。
+> 四级台阶 L0→L3 逐级加物理，每级都能对拍文献、都能退化回上一级。
+
+## 一、这一级在做什么
+
+研究内容 1 要回答的问题：**信息层与物理层互相依赖的耦合网络，是怎么一步步崩塌的？**
+
+文献给的答案分四层，本目录就是用代码把四层台阶搭出来：
+
+| 台阶 | 新增的物理 | 对拍基准（文献） | 代码文件 | 关键旋钮 | 退化性检验 |
+|---|---|---|---|---|---|
+| **L0** | 布尔耦合（伙伴死我也死）+ 巨连通分量剪枝 | Buldyrev et al., *Nature* 464:1025 (2010)；PNAS 2019 图 3A | `L0_static_dependency.py` | 耦合强度 `q` | ——（基线） |
+| **L1** | 网内自动力学 `M(x_i)` + 容忍判据 δ | 段东立 et al., *PNAS* 116(45):22452 (2019) | `L1_intra_layer_dynamics.py` | λ（网内扩散）、ω（跨层权重）、δ（容忍带） | **δ=1 ⇒ 退回 L0** |
+| **L2** | 状态驱动耦合 `W(t)` + 满足度判据 φ | 无现成基准（本项目自研，CSQ1） | `L2_state_driven_coupling.py` | ρ（退化放大）、φ（服务质量底线） | **ρ=0 且 φ=0 ⇒ 退回 L0** |
+| **L3** | 超图逻辑依赖（超边 + AND/OR/k-of-N）+ 功能度量 F(t) | Battiston et al., *Nature Physics* 17:1093 (2021)；导师点名的"超图建模基石" | `L3_hypergraph_logic.py` | 超边规模、激活规则 | **只用二元 AND 超边 ⇒ 退回 L0** |
+
+骨架（两层网络容器 + 级联不动点迭代 + GCC 剪枝）在 `core.py`，四级共用。
+
+## 二、文件地图
+
+```
+src/phase6_interdependent/
+├── core.py                      # 骨架：InterdependentNetwork / build_coupling / boolean_coupling_rule
+├── L0_static_dependency.py      # 布尔耦合 + GCC → 渗流曲线、相变阶数判定
+├── L1_intra_layer_dynamics.py   # 自动力学 + 容忍判据 δ
+├── L2_state_driven_coupling.py  # W(t) 状态驱动耦合 + 满足度 φ
+├── L3_hypergraph_logic.py       # 超边 + AND/OR/k-of-N + 功能度量 F
+└── README.md
+```
+
+配套：
+
+- 度量工具 `src/metrics/resilience_metrics.py`（p_c / 损失面积 / RHI / 恢复指标 / 脆弱性探针）
+- 学习 notebook `notebooks/01–06`（边跑边学）
+- 测试 `tests/test_interdependent.py`、`tests/test_metrics.py`（含三条退化性检验）
+
+## 三、怎么跑
+
+```bash
+# 单级实验（各自会把图存到 results/）
+python src/phase6_interdependent/L0_static_dependency.py
+python src/phase6_interdependent/L1_intra_layer_dynamics.py
+python src/phase6_interdependent/L2_state_driven_coupling.py
+python src/phase6_interdependent/L3_hypergraph_logic.py
+
+# 全部测试（111 项）
+python -m pytest -q
+
+# 度量模块自检（不需要 pytest）
+python src/metrics/resilience_metrics.py
+```
+
+## 四、三条硬口径（写论文/汇报时必须一致）
+
+1. **失效模型 = 相依渗流**（PNAS 2019 的 δ 判据 + 层间依赖级联），**不是** Motter–Lai 负载-容量模型。
+   负载-容量那一套在本平台属于 `phase5_cascading`，别混着引用。
+2. **FINDER 资产 = 脆弱性探针**：FINDER 是"拆"网络（找要移除的节点），本项目是"防"（找要加固的节点）。
+   所以只把"单点级联后果 I_i = p_c⁰ − p_cⁱ"当作定位手段，不作攻击算法发表。
+3. **韧性度量归因 = Ouyang et al., Structural Safety 25:33 (2012)**（三阶段框架 + 韧性损失面积），
+   **不是** Ouyang & Wang 2015 RESS（那篇讲相依系统联合恢复）。
+
+**符号冲突提醒**：PNAS 2019 原文用 `W(x_i)` 表示**自动力学**；本项目把自动力学统一记 `M(x_i)`，
+`W(t)` 专用于**耦合张量**。代码与文档都按这个来。
+
+## 五、对拍 PNAS 2019 的现状（诚实记录）
+
+已实测（`N=1000`，`f ∈ [0, 0.9]`，46 个点，5 次平均）：
+
+| 网络 | q | 最大单步跌幅 | 跳变位置 | S(0.3) | S(0.6) | 判定 |
+|---|---|---|---|---|---|---|
+| ER `<k>=4` | 0.2 | 0.044 | f≈0.63 | 0.643 | 0.262 | 二阶 |
+| ER `<k>=4` | 1.0 | **0.147** | f≈0.37 | 0.568 | **0.001** | 二阶（判据未过 0.2） |
+| BA `m=2` | 1.0 | 0.103 | f≈0.53 | 0.591 | 0.057 | 二阶 |
+
+**结论（不要过度声称）**：
+- 方向与 PNAS 一致：**强耦合（q=1）比弱耦合（q=0.2）崩得猛得多、早得多**（S(0.6) 0.001 vs 0.262）。
+- 但"一阶相变"的**严格标签**还没坐实，两个原因：
+  1. `transition_order` 的判据是"相邻两点最大差"，**依赖 f 网格密度**——网格加密后同一个跳变会被切成多步。
+     跨实验比较请用 `metrics.max_slope`（每单位 f 的跌幅）。
+  2. PNAS 2019 图 3A 的跳变发生在**带自动力学与容忍判据**的模型上（≈我们的 L1），L0 只是基线。
+- 待办：L1/L2 上用 ER 网络 + 更细网格重跑，用 `max_slope` 报"崩塌陡峭度"，再决定是否声称一阶。
+
+## 六、建议的阅读/学习顺序
+
+1. 读 `core.py`（骨架 + GCC + 不动点迭代）→ 跑 `notebooks/01_骨架_双层相依网络.ipynb`
+2. `L0` → `notebooks/02_L0_静态结构依赖与相变.ipynb`（复现"层间耦合把二阶变一阶"的直觉）
+3. `L1` → `notebooks/03_L1_网内动力学与容忍带.ipynb`（PNAS 2019 的核心机制）
+4. `L2` → `notebooks/04_L2_状态驱动耦合Wt.ipynb`（**自研点**，L2 没有现成基准，靠退化性检验站住）
+5. `L3` → `notebooks/05_L3_超图逻辑依赖.ipynb`（**最值钱的一级**，把"装配单元/供电片区"写成超边）
+6. `src/metrics` → `notebooks/06_韧性度量与实验设计.ipynb`（曲线 → 论文表格里的数字）
+
+## 七、常见坑
+
+- **导入写法**：每个模块都用
+  `try: from .core import ... except ImportError: from core import ...`
+  ——这样既能当包导入（`phase6_interdependent.core`），也能直接 `python L0_....py` 跑。
+- **种子必须固定**：`random` 攻击的抽样噪声足以让相变判定翻转；本项目所有实验都传 `seed`。
+- **`max_steps`**：级联循环的安全上限。没有它，规则写错（比如规则反复报同一个节点）会死循环。
+- **不要把 W(t) 缓存**：L2 的耦合权重每轮都要按当前状态重算，缓存下来就退化成常数耦合了。
+- **阈值类指标（p_c、阶数）必须写明口径**：中位数法 / 最大跌幅法给出的 p_c 在一阶相变下差得最多。

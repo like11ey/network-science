@@ -1,0 +1,224 @@
+"""
+Phase 6 · L1 —— 加网内自动力学（自动力学 M(x) + δ 容忍判据 + 跨层权重 ω）
+
+【L0 缺了什么】
+  L0 里节点只有"活/死"，一个节点只要还连着网络就一切正常。
+  现实中不是这样：**故障是先"性能下降"，降到超出容忍范围才算失效**。
+  这正是 PNAS 2019 相对 Buldyrev 2010 的关键进步：把 0/1 生死，
+  换成连续状态 x ∈ [0,1] 加一个容忍参数 δ。
+
+【本级的模型（本项目口径，汇报时要说明）】
+  1. 每个节点有一个功能量 x_i ∈ [0,1]（1 = 正常，0 = 完全失效）。
+  2. 自动力学（每一步都算一遍，直到稳定）：
+         x_i(t+1) = (1−ω)·[(1−λ)·x_i(t) + λ·⟨x_j(t)⟩_{j∈邻居}] + ω·x_partner(t)
+     各项含义：
+         ⟨x_j⟩   —— 我周围的邻居平均还剩下多少功能（网内互相供电/供货）
+         x_partner —— 我在另一层的依赖伙伴的功能（跨层耦合）
+         λ       —— 我多大程度靠邻居（0 = 全靠自己，1 = 全看邻居）
+         ω       —— 我多大程度靠另一层（0 = 单层网络，1 = 完全依赖信息层）
+     **完整网络下这个动力学的不动点是 x = 1（人人满血）**，这就是健康参考值 x̃_i。
+  3. 容忍判据（本级的核心）：
+         |1 − x_i / x̃_i| > δ  →  判定该节点失效
+     通俗说法：性能掉出 δ 的容忍带就"停机"，而不是断开才停机。
+  4. 仍有布尔耦合（伙伴死了我也死）+ GCC 剪枝兜底。
+
+【⭐ 退化性检验（科研纪律）】
+  令 δ = 1（容忍 100%，性能再掉也不停机）⇒ 本级必须**完全退回 L0**。
+  这不是"顺便测一下"，而是**模型可信度的证据**：加的东西在极端参数下不改变老结论。
+  见 tests/test_interdependent.py::test_L1_degenerates_to_L0。
+
+【这一级要学的知识】
+  · 不动点与迭代收敛：为什么反复算会稳定下来
+  · 状态量 vs 生死量：连续模型怎么"包含"离散模型
+  · 线性耦合算子：邻居平均 = 图拉普拉斯的一阶形式（一句话知道就行）
+  · 容忍阈值 δ 的作用：δ 小 = 敏感 = 更容易级联
+
+运行：
+    python src/phase6_interdependent/L1_intra_layer_dynamics.py
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+
+try:  # 作为包被导入（pytest / python -m）
+    from .core import InterdependentNetwork, boolean_coupling_rule
+except ImportError:  # 直接当脚本跑
+    from core import InterdependentNetwork, boolean_coupling_rule
+
+RESULTS_DIR = Path(__file__).resolve().parent.parent.parent / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
+
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+plt.rcParams["axes.unicode_minus"] = False
+
+LEVEL = "L1 网内自动力学"
+__all__ = ["AutoDynamicsConfig", "healthy_reference", "run_dynamics", "L1Rule", "run_experiment"]
+
+
+class AutoDynamicsConfig:
+    """
+    自动力学的三个旋钮（L1 的全部可调参数）。
+
+    lam (λ) : 网内依赖强度，x 越靠邻居平均
+    omega(ω): 跨层依赖强度，x 越靠另一层的伙伴
+    delta(δ): 容忍带宽，性能掉出 δ 才停机（δ=1 ⇒ 永不因性能停机 ⇒ 退回 L0）
+    """
+
+    def __init__(self, lam=0.5, omega=0.3, delta=0.2, tol=1e-6, max_iter=100):
+        self.lam = lam
+        self.omega = omega
+        self.delta = delta
+        self.tol = tol
+        self.max_iter = max_iter
+
+    def __repr__(self):
+        return (f"AutoDynamicsConfig(lam={self.lam}, omega={self.omega}, "
+                f"delta={self.delta})")
+
+
+def _step_states(net, cfg, layer, other):
+    """
+    算一层节点的下一步状态 x(t+1)。
+
+    只考虑**当前存活**的邻居（失效邻居对 x 的贡献为 0，相当于断路）。
+    """
+    new_x = {}
+    for node in net.G[layer].nodes():
+        if not net.alive[layer][node]:
+            new_x[node] = 0.0
+            continue
+
+        neighbours = [j for j in net.G[layer].neighbors(node) if net.alive[layer][j]]
+        neighbour_mean = (sum(net.x[layer][j] for j in neighbours) / len(neighbours)
+                          if neighbours else 0.0)
+
+        partner = net.partner[layer].get(node)
+        partner_x = (net.x[other][partner]
+                     if partner is not None and net.alive[other][partner] else 0.0)
+
+        local = (1 - cfg.lam) * net.x[layer][node] + cfg.lam * neighbour_mean
+        new_x[node] = (1 - cfg.omega) * local + cfg.omega * partner_x
+    return new_x
+
+
+def run_dynamics(net, cfg, max_iter=None, tol=None):
+    """
+    在当前存活结构上把状态 x 迭代到不动点（或到最大步数）。
+
+    学习点：**收敛判据**。每次迭代对比前后状态的最大变化量，
+    小于 tol 就认为"不动了"，不再浪费算力。工程代码里到处是这个套路。
+    """
+    max_iter = cfg.max_iter if max_iter is None else max_iter
+    tol = cfg.tol if tol is None else tol
+    for _ in range(max_iter):
+        new_A = _step_states(net, cfg, "A", "B")
+        new_B = _step_states(net, cfg, "B", "A")
+        diff = max(
+            max(abs(new_A[n] - net.x["A"][n]) for n in new_A) if new_A else 0.0,
+            max(abs(new_B[n] - net.x["B"][n]) for n in new_B) if new_B else 0.0,
+        )
+        net.x["A"], net.x["B"] = new_A, new_B
+        if diff < tol:
+            break
+    return net.x
+
+
+def healthy_reference(G_A, G_B, cfg, coupled_fraction=1.0, seed=0):
+    """
+    量健康参考值 x̃_i：在**完好网络**上跑一遍自动力学。
+
+    为什么要参考值？因为容忍判据是"相对自己正常水平掉了多少"，
+    所以必须先知道"正常水平"是多少。本模型的线性动力学不动点是 1，
+    但代码写成通用形式，将来换成非线性 M(x) 时不用改。
+    """
+    net = InterdependentNetwork(G_A, G_B, coupled_fraction=coupled_fraction, seed=seed)
+    net.run([], rule=None)  # 空初始故障 = 完好网络
+    run_dynamics(net, cfg)
+    return {layer: dict(net.x[layer]) for layer in ("A", "B")}
+
+
+class L1Rule:
+    """
+    把 L1 的失效判定包成 core.run() 认识的 rule 函数。
+
+    一轮里做三件事：
+      1. 布尔耦合：伙伴死了我也死（L0 的规则照旧）
+      2. 跑自动力学到稳定
+      3. 容忍判据：|1 − x_i/x̃_i| > δ 的节点判失效
+    """
+
+    def __init__(self, cfg, x_ref):
+        self.cfg = cfg
+        self.x_ref = x_ref
+
+    def __call__(self, net):
+        newly = list(boolean_coupling_rule(net))
+        run_dynamics(net, self.cfg)
+
+        for layer in ("A", "B"):
+            for node in net.G[layer].nodes():
+                if not net.alive[layer][node]:
+                    continue
+                ref = self.x_ref[layer][node]
+                if ref <= 0:
+                    continue
+                if abs(1.0 - net.x[layer][node] / ref) > self.cfg.delta:
+                    newly.append((layer, node))
+        return newly
+
+
+def run_experiment(N=300, m=3, n_trials=3, seed=42, save=True):
+    """扫容忍带宽 δ，看它对级联后果的影响（δ 小 ⇒ 更脆弱）。"""
+    G_A = nx.barabasi_albert_graph(N, m, seed=seed)
+    G_B = nx.barabasi_albert_graph(N, m, seed=seed + 1)
+    fractions = np.linspace(0.0, 0.4, 17)
+    deltas = [0.05, 0.2, 0.5, 1.0]
+
+    curves = {}
+    for delta in deltas:
+        cfg = AutoDynamicsConfig(lam=0.5, omega=0.3, delta=delta)
+        x_ref = healthy_reference(G_A, G_B, cfg)
+        rng = np.random.default_rng(seed)
+        nodes_A = sorted(G_A.nodes())
+        curve = []
+        for f in fractions:
+            n_remove = int(round(len(nodes_A) * f))
+            trials = []
+            for _ in range(n_trials):
+                net = InterdependentNetwork(G_A, G_B, seed=seed)
+                failed = ([] if n_remove == 0
+                          else rng.choice(nodes_A, size=n_remove, replace=False))
+                trials.append(net.run(failed, rule=L1Rule(cfg, x_ref))["S_A"])
+            curve.append(float(np.mean(trials)))
+        curves[delta] = curve
+        print(f"  δ={delta:<4} → S(f=0.2)={np.interp(0.2, fractions, curve):.3f}")
+
+    print(f"=== {LEVEL}：容忍带宽 δ 越小越脆弱（λ=0.5, ω=0.3）===")
+    print("  δ=1.0 这一行应当与 L0 完全一致（退化性检验）")
+
+    if save:
+        plt.figure(figsize=(9, 6))
+        for delta, curve in curves.items():
+            style = "--" if delta == 1.0 else "-"
+            plt.plot(fractions, curve, "o" + style, markersize=4,
+                     label=f"δ = {delta}" + ("（= L0 退化）" if delta == 1.0 else ""))
+        plt.xlabel("初始移除比例 f")
+        plt.ylabel("存活序参量 S（层 A 的 GCC 占比）")
+        plt.title(f"{LEVEL}：性能降级到停机（δ 容忍带）")
+        plt.legend()
+        plt.grid(alpha=0.3)
+        out = RESULTS_DIR / "phase6_L1_tolerance.png"
+        plt.savefig(out, dpi=150, bbox_inches="tight")
+        plt.close()
+        print(f"  图已保存：{out}")
+
+    return {"fractions": list(fractions), "curves": curves}
+
+
+if __name__ == "__main__":
+    run_experiment()

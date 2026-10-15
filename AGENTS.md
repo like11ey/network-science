@@ -26,7 +26,8 @@ Complex Network Cascading Failure Simulation Platform — 从 Python 零基础�
 ├── src/                  # 源代码（8 个阶段子包）
 ├── data/                 # 数据文件（运行时自动生成）
 ├── results/              # 输出图表（运行时自动创建）
-├── tests/                # 测试文件
+├── notebooks/            # 学习 notebook（01–06，边跑边学）
+├── tests/                # 测试文件（111 项）
 ├── requirements.txt      # Python 依赖
 ├── setup.py              # 包安装配置
 ├── CLAUDE.md             # 详细学习指南
@@ -71,11 +72,19 @@ Complex Network Cascading Failure Simulation Platform — 从 Python 零基础�
 |------|------|
 | `01_cascading_failure.py` | 负载-容量模型、`CascadingFailureSimulator` 类、可调参数 β |
 
-### Phase 6: 相依网络级联失效 (`src/phase6_interdependent/`)
+### Phase 6: 信息-物理耦合网络内核 (`src/phase6_interdependent/`) ★最高优先级
+
+四级台阶 L0→L3，每级可对拍文献、可退化回上一级。入口文档见该目录 `README.md`。
 
 | 文件 | 内容 |
 |------|------|
-| `01_interdependent_cascading.py` | 双层耦合网络、`InterdependentNetwork` 类、一级/二级相变 |
+| `core.py` | 骨架：`InterdependentNetwork`、`build_coupling`、`boolean_coupling_rule`、GCC 剪枝与级联不动点迭代 |
+| `L0_static_dependency.py` | L0：布尔耦合 + 巨连通分量 → 渗流曲线、相变阶数（对拍 Buldyrev 2010 / PNAS 2019 图 3A） |
+| `L1_intra_layer_dynamics.py` | L1：网内自动力学 `M(x)` + 容忍判据 δ（对拍 Duan et al. PNAS 2019；**δ=1 退回 L0**） |
+| `L2_state_driven_coupling.py` | L2：状态驱动耦合 `W(t)` + 满足度判据 φ（自研点，**ρ=0∧φ=0 退回 L0**） |
+| `L3_hypergraph_logic.py` | L3：超边 + AND/OR/k-of-N + 功能度量 F（对拍 Battiston Nat. Phys. 2021；**只用二元 AND 超边退回 L0**） |
+
+配套：度量工具 `src/metrics/`（p_c / 损失面积 / RHI / 恢复指标 / 脆弱性探针）、学习 notebook `notebooks/01–06`、测试 `tests/test_interdependent.py` + `tests/test_metrics.py`。
 
 ### Phase 7: 网络可视化 (`src/phase7_visualization/`)
 
@@ -115,8 +124,11 @@ python src/phase4_robustness/01_robustness_analysis.py
 # Phase 5: 级联失效
 python src/phase5_cascading/01_cascading_failure.py
 
-# Phase 6: 相依网络
-python src/phase6_interdependent/01_interdependent_cascading.py
+# Phase 6: 信息-物理耦合网络内核（四级台阶，各自会存图到 results/）
+python src/phase6_interdependent/L0_static_dependency.py
+python src/phase6_interdependent/L1_intra_layer_dynamics.py
+python src/phase6_interdependent/L2_state_driven_coupling.py
+python src/phase6_interdependent/L3_hypergraph_logic.py
 
 # Phase 7: 可视化
 python src/phase7_visualization/01_network_viz.py
@@ -128,6 +140,9 @@ python src/phase8_ml_integration/01_ml_prediction.py
 ### 运行测试
 
 ```bash
+# 运行全部测试（111 项：network/cascading/interdependent/metrics/ml）
+python -m pytest -q
+
 # 运行全部测试（详细输出）
 python -m pytest tests/test_network.py -v
 
@@ -175,8 +190,10 @@ python -c "import networkx, numpy, pandas, matplotlib, sklearn; print('环境OK'
 | `er_vs_ba_robustness.png` | Phase 4 | ER vs BA 鲁棒性对比 |
 | `cascading_alpha.png` | Phase 5 | 容量参数 α 对级联的影响 |
 | `cascading_beta.png` | Phase 5 | 可调参数 β 的影响 |
-| `interdependent_percolation.png` | Phase 6 | 相依网络渗流曲线 |
-| `coupling_strength.png` | Phase 6 | 耦合强度影响 |
+| `phase6_L0_percolation.png` | Phase 6 | L0 渗流曲线（单层 vs 弱耦合 vs 强耦合） |
+| `phase6_L1_tolerance.png` | Phase 6 | L1 容忍带 δ 的影响 |
+| `phase6_L2_state_driven.png` | Phase 6 | L2 状态驱动耦合 `W(t)` 的影响 |
+| `phase6_L3_hypergraph_logic.png` | Phase 6 | L3 超边激活规则（AND/OR/k-of-N）对比 |
 | `ba_network.png` | Phase 7 | BA 网络基础图 |
 | `er_network.png` | Phase 7 | ER 网络基础图 |
 | `ba_dashboard.png` | Phase 7 | BA 综合分析仪表板 |

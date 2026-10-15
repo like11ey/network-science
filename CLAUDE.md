@@ -537,7 +537,9 @@ elif self.load_strategy == "my_strategy":
 ## Day 1-2：理解相依网络
 
 ```bash
-python src/phase6_interdependent/01_interdependent_cascading.py
+# 先读 src/phase6_interdependent/README.md（四级台阶讲解），再按台阶跑：
+python src/phase6_interdependent/L0_static_dependency.py   # L0: 布尔耦合 + 巨连通分量
+python src/phase6_interdependent/L1_intra_layer_dynamics.py # L1: 自动力学 + 容忍判据 δ（PNAS 2019）
 ```
 
 ### 相依网络的概念（导师PPT第7.3章）：

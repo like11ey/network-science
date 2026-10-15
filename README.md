@@ -49,8 +49,17 @@ ai_python/
 │   ├── phase5_cascading/              # Phase 5: 级联失效
 │   │   └── 01_cascading_failure.py    # 负载-容量模型仿真
 │   │
-│   ├── phase6_interdependent/         # Phase 6: 相依网络
-│   │   └── 01_interdependent_cascading.py  # 双层耦合网络级联
+│   ├── phase6_interdependent/         # Phase 6: 信息-物理耦合网络内核 ★
+│   │   ├── core.py                    # 骨架：双层网络容器 + GCC 剪枝 + 级联迭代
+│   │   ├── L0_static_dependency.py    # L0: 布尔耦合 + 巨连通分量（渗流曲线/相变阶数）
+│   │   ├── L1_intra_layer_dynamics.py # L1: 网内自动力学 + 容忍判据 δ（PNAS 2019）
+│   │   ├── L2_state_driven_coupling.py# L2: 状态驱动耦合 W(t) + 满足度 φ（自研）
+│   │   ├── L3_hypergraph_logic.py     # L3: 超图逻辑依赖 + 功能度量 F
+│   │   └── README.md                  # 四级台阶讲解（先读这个）
+│   │
+│   ├── metrics/                       # 韧性度量工具箱（跨 phase 共用口径）
+│   │   ├── resilience_metrics.py      # p_c / 损失面积 / RHI / 恢复指标 / 脆弱性探针
+│   │   └── README.md
 │   │
 │   ├── phase7_visualization/          # Phase 7: 数据可视化
 │   │   └── 01_network_viz.py          # 网络图、仪表板、分析报告
@@ -62,6 +71,7 @@ ai_python/
 │   ├── edges.csv                      # 边列表（CSV格式）
 │   ├── network.json                   # 网络数据（JSON格式）
 │   ├── ba_network.gml                 # BA网络（GML格式）
+│   ├── legacy/                        # 遗留数据集（GNN 项目停后留档，见其 README）
 │   └── ...
 │
 ├── results/                           # 输出图表
@@ -69,12 +79,19 @@ ai_python/
 │   ├── network_visualization.png      # 网络结构可视化
 │   ├── er_vs_ba_robustness.png        # 鲁棒性对比
 │   ├── cascading_alpha.png            # 级联失效（α参数）
-│   ├── interdependent_percolation.png # 相依网络渗流
+│   ├── phase6_L0_percolation.png      # Phase 6: L0 渗流曲线
+│   ├── phase6_L1_tolerance.png        # Phase 6: L1 容忍带
+│   ├── phase6_L2_state_driven.png     # Phase 6: L2 状态驱动耦合
+│   ├── phase6_L3_hypergraph_logic.png # Phase 6: L3 超边激活规则
 │   ├── ml_model_comparison.png        # ML模型对比
 │   └── ...
 │
-└── tests/                             # 测试文件
-    └── test_network.py
+├── notebooks/                         # 学习 notebook（01–06，边跑边学；见其 README）
+│
+└── tests/                             # 测试文件（111 项）
+    ├── test_network.py
+    ├── test_interdependent.py         # Phase 6 四级台阶 + 三条退化性检验
+    └── test_metrics.py
 ```
 
 ---
@@ -118,8 +135,11 @@ python src/phase4_robustness/01_robustness_analysis.py
 # Phase 5: 级联失效
 python src/phase5_cascading/01_cascading_failure.py
 
-# Phase 6: 相依网络
-python src/phase6_interdependent/01_interdependent_cascading.py
+# Phase 6: 信息-物理耦合网络内核（L0→L3，依次跑）
+python src/phase6_interdependent/L0_static_dependency.py
+python src/phase6_interdependent/L1_intra_layer_dynamics.py
+python src/phase6_interdependent/L2_state_driven_coupling.py
+python src/phase6_interdependent/L3_hypergraph_logic.py
 
 # Phase 7: 可视化
 python src/phase7_visualization/01_network_viz.py
@@ -139,7 +159,7 @@ python src/phase8_ml_integration/01_ml_prediction.py
 | Phase 3 | 网络模型 | 规则/ER/WS/BA模型、度分布、幂律检验 | PPT第4章 | 3-4天 |
 | Phase 4 | 鲁棒性 | 随机故障、蓄意攻击、渗流理论、Malloy-Reed判据 | Albert et al. (2000) | 4-5天 |
 | Phase 5 | 级联失效 | 负载-容量模型、负载分配策略、可调参数β | Duan et al. | 5-7天 |
-| Phase 6 | 相依网络 | 双层耦合、级联崩溃、一级/二级相变 | Duan et al., PNAS 2019 | 4-5天 |
+| Phase 6 | 信息-物理耦合网络内核 | **L0→L3 四级台阶**：布尔耦合+GCC → 自动力学+容忍带δ → 状态驱动耦合W(t)+满足度φ → 超图逻辑依赖（每级可退化回上一级） | Duan et al., PNAS 2019；Battiston, Nat. Phys. 2021 | 持续升级 |
 | Phase 7 | 可视化 | 网络图、度分布图、仪表板、级联过程动画 | — | 2-3天 |
 | Phase 8 | ML集成 | 特征提取、随机森林、梯度提升、模型评估 | — | 3-4天 |
 
@@ -184,7 +204,7 @@ python src/phase8_ml_integration/01_ml_prediction.py
 >
 > - 实现了ER、WS、BA等经典网络模型的生成与对比分析
 > - 开发了负载-容量级联失效仿真器，支持多种负载分配策略
-> - 构建了双层相依网络模型，验证了一级相变现象
+> - 构建了双层相依网络四级台阶模型（L0 布尔耦合 → L3 超图逻辑依赖），每级配退化性检验
 > - 使用随机森林/梯度提升模型预测网络关键节点，F1分数达到0.95+
 > - 生成了20+张专业分析图表，包括度分布、鲁棒性曲线、混淆矩阵等
 

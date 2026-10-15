@@ -101,16 +101,15 @@ def test_capacity_parameter():
 
 
 def test_interdependent_creation():
-    """测试相依网络创建"""
-    InterdependentNetwork = _import_from(
-        "phase6_interdependent", "01_interdependent_cascading", "InterdependentNetwork"
-    )
+    """测试相依网络创建（Phase 6 新骨架 core.InterdependentNetwork）"""
+    InterdependentNetwork = _import_from("phase6_interdependent", "core",
+                                         "InterdependentNetwork")
     G_A = nx.erdos_renyi_graph(30, 0.05, seed=42)
     G_B = nx.erdos_renyi_graph(30, 0.05, seed=43)
     net = InterdependentNetwork(G_A, G_B)
-    assert net.N_A == 30
-    assert net.N_B == 30
-    assert len(net.coupling) == 30
+    assert net.n_nodes("A") == 30
+    assert net.n_nodes("B") == 30
+    assert len(net.partner["A"]) == 30
 
 
 if __name__ == "__main__":
