@@ -11,7 +11,7 @@
 | 04 | `04_L2_状态驱动耦合Wt.ipynb` | `L2_state_driven_coupling.py` | `W(t)` 状态驱动耦合、满足度 φ、**ρ=0∧φ=0 退回 L0** |
 | 05 | `05_L3_超图逻辑依赖.ipynb` | `L3_hypergraph_logic.py` | 超边与 AND/OR/k-of-N 语义、功能度量 F、**二元 AND 退回 L0** |
 | 06 | `06_韧性度量与实验设计.ipynb` | `src/metrics/` | 曲线 → p_c / 损失面积 / RHI / 恢复指标 / 脆弱性探针 |
-| 07 | `07_CPS主循环_耦合张量.ipynb` | `cps_cascade.py` | 两张耦合张量 `W^C`/`W^S`、δ/φ 双判据、**关掉判据退回 L0** 的退化性检验 |
+| 07 | `07_CPS主循环_耦合张量.ipynb` | `cps_cascade.py` | 两张耦合张量 `W^C`/`W^S`、δ/φ/Φ 三判据、新失效通道（只退化不删点）、**关掉判据退回 L0** 的退化性检验 |
 
 ## 怎么运行
 

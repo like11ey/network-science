@@ -27,7 +27,7 @@ Complex Network Cascading Failure Simulation Platform — 从 Python 零基础�
 ├── data/                 # 数据文件（运行时自动生成）
 ├── results/              # 输出图表（运行时自动创建）
 ├── notebooks/            # 学习 notebook（01–07，边跑边学）
-├── tests/                # 测试文件（115 项）
+├── tests/                # 测试文件（117 项）
 ├── requirements.txt      # Python 依赖
 ├── setup.py              # 包安装配置
 ├── CLAUDE.md             # 详细学习指南
@@ -83,7 +83,7 @@ Complex Network Cascading Failure Simulation Platform — 从 Python 零基础�
 | `L1_intra_layer_dynamics.py` | L1：网内自动力学 `M(x)` + 容忍判据 δ（对拍 Duan et al. PNAS 2019；**δ=1 退回 L0**） |
 | `L2_state_driven_coupling.py` | L2：状态驱动耦合 `W(t)` + 满足度判据 φ（自研点，**ρ=0∧φ=0 退回 L0**） |
 | `L3_hypergraph_logic.py` | L3：超边 + AND/OR/k-of-N + 功能度量 F（对拍 Battiston Nat. Phys. 2021；**只用二元 AND 超边退回 L0**） |
-| `cps_cascade.py` | CPS 主循环：两张耦合张量 `W^C`/`W^S`（状态驱动打折）+ δ/φ 双判据 + 超边逻辑同轮跑（研究内容 1 的 CSQ1；**δ=1 且 φ=0 ⇒ 退回 L0**） |
+| `cps_cascade.py` | CPS 主循环：两张耦合张量 `W^C = w⁰·e^(−λτ·τ̂)·h^α` / `W^S = w⁰·(1−β(1−h))·(1−q)` + δ/φ/Φ 三判据 + 超边逻辑同轮跑（研究内容 1 的 CSQ1；**δ=1 且 φ=0 且 Φ=0 且 τ̂=q=0 ⇒ 退回 L0**）；`run_experiment_degradation` 是不删节点、只靠耦合劣化的新失效通道 |
 
 配套：度量工具 `src/metrics/`（p_c / 损失面积 / RHI / 恢复指标 / 脆弱性探针）、学习 notebook `notebooks/01–07`、测试 `tests/test_interdependent.py` + `tests/test_metrics.py`。
 
@@ -142,7 +142,7 @@ python src/phase8_ml_integration/01_ml_prediction.py
 ### 运行测试
 
 ```bash
-# 运行全部测试（115 项：network/cascading/interdependent/metrics/ml）
+# 运行全部测试（117 项：network/cascading/interdependent/metrics/ml）
 python -m pytest -q
 
 # 运行全部测试（详细输出）

@@ -16,7 +16,7 @@ scripts/phase6_transition_order.py — 用**细 f 网格 + 网格无关判据**�
     python scripts/phase6_transition_order.py --level L3 --N 500 --trials 2 --step 0.05
         # L3 默认对比三种功能单元语义：AND / k-of-N / OR（超边 size 由 --size 控制）
     python scripts/phase6_transition_order.py --level CPS --N 300 --trials 2 --step 0.05
-        # CPS 主循环：变体写法 = h_s:h_c:delta:phi（如 0:0:1:0、6:6:0.3:0.75）
+        # CPS 主循环：变体写法 = lambda_tau:alpha:beta:delta:phi_s（如 0:1:0:1:0、1:1:0.5:0.3:0.75）
 """
 
 import argparse
@@ -148,16 +148,17 @@ def main():
     elif args.level == "CPS":
         variants = ([tuple(float(y) for y in x.split(":")) for x in args.variants.split(",")]
                     if args.variants
-                    else [(0.0, 0.0, 1.0, 0.0), (0.0, 0.0, 0.3, 0.0),
-                          (0.0, 0.0, 1.0, 0.75), (6.0, 6.0, 0.3, 0.75)])
-        cfgs = {v: CPS.CPSConfig(h_s=v[0], h_c=v[1], delta=v[2], phi=v[3]) for v in variants}
+                    else [(0.0, 1.0, 0.0, 1.0, 0.0), (0.0, 1.0, 0.0, 0.3, 0.0),
+                          (0.0, 1.0, 0.0, 1.0, 0.75), (1.0, 1.0, 0.5, 0.3, 0.75)])
+        cfgs = {v: CPS.CPSConfig(lambda_tau=v[0], alpha=v[1], beta=v[2],
+                                 delta=v[3], phi_s=v[4]) for v in variants}
         x_refs = {(v, q): CPS.healthy_reference(G_A, G_B, cfgs[v], coupled_fraction=q,
                                                 seed=args.seed)
                   for v in variants for q in (0.2, 1.0)}
         rule_of = lambda v, q: (lambda net: net.cps_rule(cfgs[v], x_refs[(v, q)]))
         net_factory_of = lambda v: make_CPS_factory(args.edges, args.size, args.seed)
         measure = L3.functional_measure
-        label = lambda v: f"h={v[0]}/δ={v[2]}/φ={v[3]}"
+        label = lambda v: f"λτ={v[0]}/α={v[1]}/β={v[2]}/δ={v[3]}/φs={v[4]}"
     else:
         # 变体写法："AND" 或 "k-of-N:2"；k 不写时取 ⌈size/2⌉
         variants = ([(x.split(":")[0], (int(x.split(":")[1]) if ":" in x else None))

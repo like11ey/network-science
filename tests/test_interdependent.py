@@ -395,17 +395,45 @@ class TestL3Hypergraph:
 
 class TestCPSMainLoop:
 
-    def test_coupling_weight_shrinks_with_worse_state(self):
-        """W(t)：状态越差折扣越狠；h=0 ⇒ 退回常数 τ。"""
+    def test_coupling_weights_follow_design_monotonicity(self):
+        """设计稿 §8 检验 6：τ̂↑ ⇒ g↓；h↓ ⇒ κ↓、s↓；q↑ ⇒ W^S↓；β↑ ⇒ s↓。"""
         CPS = _load("cps_cascade")
-        assert CPS.coupling_weight(1.0, 1.0, 1.0, 3.0) == 1.0
-        assert CPS.coupling_weight(0.2, 1.0, 1.0, 3.0) < 1.0
-        assert CPS.coupling_weight(0.2, 0.0, 0.5, 0.0) == 0.5
+        # 健康网 + 无时延、无丢包 ⇒ 两张张量都恰好是 w⁰（退化性检验的前提）
+        assert CPS.control_weight(1.0, 0.0) == 1.0
+        assert CPS.sensing_weight(1.0, 0.0) == 1.0
+        # g(τ̂)=exp(−λτ τ̂) 单调降
+        assert CPS.control_weight(1.0, 0.5) < CPS.control_weight(1.0, 0.2)
+        # κ(h)=h^α 单调升
+        assert CPS.control_weight(0.3, 0.0) < CPS.control_weight(0.8, 0.0)
+        assert CPS.control_weight(0.0, 0.0) == 0.0
+        # s(h)=1−β(1−h)：h↓ ⇒ ↓；β↑ ⇒ ↓
+        assert CPS.sensing_weight(0.4, 0.0) < CPS.sensing_weight(0.9, 0.0)
+        assert CPS.sensing_weight(0.4, 0.0, beta=1.0) < CPS.sensing_weight(0.4, 0.0, beta=0.2)
+        # (1−q) 单调降
+        assert CPS.sensing_weight(1.0, 0.7) < CPS.sensing_weight(1.0, 0.1)
+
+    def test_sensing_satisfaction_drops_with_degradation(self):
+        """Φ_ν = W^S/w⁰：健康时 =1；设备退化后单调下降；设备死亡 ⇒ 0。"""
+        CPS = _load("cps_cascade")
+        cfg = CPS.CPSConfig(beta=0.5)
+        net = CPS.CPSNetwork(*_make_pair(N=30, m=2, seed=3), seed=3)
+        net.run([], rule=None)
+        phis = set()
+        for h in (1.0, 0.6, 0.2):
+            for i in net.G["A"].nodes():
+                net.x["A"][i] = h
+            phis.add(round(min(CPS.sensing_satisfaction(net, cfg).values()), 6))
+        assert sum(1 for p in phis if p == 1.0) == 1          # 只有 h=1 时才是 1
+        vals = [min(CPS.sensing_satisfaction(net, cfg).values())]
+        for i in net.G["A"].nodes():                        # 死亡 ⇒ Φ=0
+            net.kill("A", i)
+        assert min(CPS.sensing_satisfaction(net, cfg).values()) == 0.0
+        assert vals[0] < 1.0
 
     def test_delta_one_phi_zero_degenerates_to_L0(self):
-        """⭐ 退化性检验：关掉 δ 与 φ ⇒ 主循环必须与 L0 完全一致。"""
+        """⭐ 退化性检验：关掉 δ / φ / Φ 且 τ̂=0、q=0 ⇒ 主循环必须与 L0 完全一致。"""
         CPS = _load("cps_cascade")
-        cfg = CPS.CPSConfig(h_s=0.0, h_c=0.0, delta=1.0, phi=0.0)
+        cfg = CPS.CPSConfig(lambda_tau=0.0, beta=0.0, delta=1.0, phi=0.0, phi_s=0.0)
         curve_cps = _S_curve(lambda net: net.cps_rule(cfg), FAIR_FRACTIONS,
                              net_cls=CPS.CPSNetwork)
         curve_L0 = _S_curve(lambda net: None, FAIR_FRACTIONS)
@@ -423,12 +451,30 @@ class TestCPSMainLoop:
         assert curve_on[-1] <= curve_off[-1]
 
     def test_state_driven_degradation_is_not_more_resilient(self):
-        """h=0（常数耦合）与 h=3（状态驱动打折）：打折只会更差，不会更好。"""
+        """状态驱动（λτ=1, β=0.5）与常数耦合（λτ=0, β=0）：打折只会更差，不会更好。"""
         CPS = _load("cps_cascade")
-        cfg_flat = CPS.CPSConfig(h_s=0.0, h_c=0.0, delta=0.5, phi=0.0)
-        cfg_deg = CPS.CPSConfig(h_s=3.0, h_c=3.0, delta=0.5, phi=0.0)
+        cfg_flat = CPS.CPSConfig(lambda_tau=0.0, beta=0.0, delta=0.5)
+        cfg_deg = CPS.CPSConfig(lambda_tau=1.0, beta=0.5, delta=0.5)
         curve_flat = _S_curve(lambda net: net.cps_rule(cfg_flat), FAIR_FRACTIONS,
                               net_cls=CPS.CPSNetwork, n_trials=1)
         curve_deg = _S_curve(lambda net: net.cps_rule(cfg_deg), FAIR_FRACTIONS,
                              net_cls=CPS.CPSNetwork, n_trials=1)
         assert curve_deg[-1] <= curve_flat[-1] + 1e-9
+
+    def test_satisfaction_channel_needs_no_initial_fault(self):
+        """设计稿 §5.2 新失效通道：不删任何节点，只让 x⁰_A 下降 ⇒ Φ 跌破阈值即级联。
+
+        δ 与 φ 全部关掉，失效只能来自 Φ 口径 —— 静态耦合模型里根本不存在这条通道。
+        """
+        CPS = _load("cps_cascade")
+        G_A, G_B = _make_pair(N=60, m=2, seed=11)
+
+        def deaths(target_A):
+            cfg = CPS.CPSConfig(beta=0.5, delta=1.0, phi=0.0, phi_s=0.8, target_A=target_A)
+            net = CPS.CPSNetwork(G_A, G_B, seed=11)
+            net.run([], rule=None)
+            net.run([], rule=net.cps_rule(cfg, None))
+            return sum(1 for n in net.G["A"] if not net.alive["A"][n])
+
+        assert deaths(1.0) == 0            # 全健康 ⇒ 零失效
+        assert deaths(0.2) > 0             # 持续退化 ⇒ 没有任何初始故障也会崩
